@@ -1,0 +1,4 @@
+# Global: preserve generated research artifacts. Local: disable text diffs and newline rewriting.
+# Source: https://git-scm.com/docs/gitattributes (built-in binary macro).
+*.pdf binary
+*.png binary

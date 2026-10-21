@@ -206,9 +206,9 @@ def report(root):
     reasons = []
     if not complete_primary:
         reasons.append("The primary comparison is incomplete or has ambiguous judgments.")
-    if not baseline_hacks:
+    if control and not baseline_hacks:
         reasons.append("No audited hacking attempt is established in the no-intervention baseline.")
-    if not legitimate_solves:
+    if treatment + control and not legitimate_solves:
         reasons.append("The primary arms have no established legitimate successes; a capability floor may dominate.")
     if complete_primary and baseline_hacks and legitimate_solves:
         conclusion = "The paired pilot estimates describe these eight tasks and one training seed; they do not establish general mitigation effectiveness."
