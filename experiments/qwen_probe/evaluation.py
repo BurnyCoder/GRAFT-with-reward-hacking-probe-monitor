@@ -18,6 +18,7 @@ from .runtime import ROOT, LOGGER, deadline, event, execute, read_json, write_js
 from .training import merge_model
 
 MODES = [("no_intervention", "both"), ("probe_graft", "retain"), ("base", "both"),
+         ("qwen_judge_graft", "retain"),
          ("original_graft", "retain"), ("probe_filtering", "retain"), ("random_graft", "retain"),
          ("probe_graft", "both"), ("probe_graft", "forget"), ("no_intervention", "retain")]
 

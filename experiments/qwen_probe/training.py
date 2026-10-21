@@ -32,6 +32,8 @@ def train_arm(root, arm, *, smoke=False):
     destination = root / "checkpoints" / name
     if (destination / "progress.json").exists():  # Local: never silently restart or extend an interrupted run.
         return read_json(destination / "progress.json")["complete"]
+    if not (root / "data" / arm / "gr_train_retain.jsonl").exists():
+        raise RuntimeError(f"Missing routing pools for {arm}; complete the corresponding monitor validation first")
     verify_published(root)
     lock = read_json(root / "data/lock.json")
     config = lock["configuration"]

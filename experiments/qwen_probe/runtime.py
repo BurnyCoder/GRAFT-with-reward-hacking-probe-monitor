@@ -98,7 +98,7 @@ def execute(command, *, env=None, deadline=None, check=True):
 
 
 def deadline(root, *, start=False):
-    """Global: six hours across resumptions. Local: write a start time only once."""
+    """Global: fixed deadline across resumptions. Local: six-hour default, explicit amendments stay persisted."""
     path = root / "budget.json"  # Local: shared across independent phase commands.
     if not path.exists() and start:  # Local: downloads/installations do not start the clock.
         now = time.time()  # Local: absolute UTC epoch timestamp.

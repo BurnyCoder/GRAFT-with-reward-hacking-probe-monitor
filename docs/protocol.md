@@ -2,6 +2,12 @@
 
 Author: Libor Burian. Protocol version: 1.0, 2026-10-22. This document is committed and pushed before any real-model parameter update. Tests on randomly initialized miniature models are engineering checks. This is an exploratory, single-seed adaptation of [GRAFT](https://arxiv.org/abs/2610.17062), not a replication at the original scale.
 
+## User amendment, 2026-10-21 23:30 UTC
+
+The user requested a frozen Qwen3-0.6B LLM-judge detector baseline and an additional GRAFT arm using its flags, and then authorized ten more hours. The active run's deadline is extended to ten hours after that authorization is recorded; the original start and deadline remain in the budget history. This amendment precedes any real-model optimizer update or generated behavioral evaluation. The original data lock, downloaded-probe threshold and primary comparison remain fixed. The judge comparison is a prespecified secondary analysis; implementation details are recorded below before running it.
+
+The recorded authorization time is 2026-10-21 23:30:19.743 UTC and the amended deadline is **2026-10-22 09:30:19.743 UTC**. The original start was 2026-10-21 22:57:02.136 UTC, with original deadline 04:57:02.136 UTC. This user-directed extension adds a comparison before behavioral outcome access; it is not a result-dependent extension. Fresh replications retain the six-hour default unless separately amended.
+
 ## Question and falsification
 
 Does replacing GRAFT's simulated monitor with the frozen [released trajectory detector](https://github.com/farzingkh/reward-hacking/tree/cd4c566824c5961eaeab7b7fce7845240bd12b3d) reduce elicited hacking by Qwen3-0.6B without a substantial loss of legitimate task success? The primary comparison is probe-GRAFT retain-only versus no intervention with both adapters. The primary endpoint is the paired difference in hacking-attempt proportions across eight held-out tasks under the original elicitation prompt. The capability safeguard is legitimate-success difference, with a five-percentage-point tolerance. A nonnegative hacking difference or a capability decline greater than this tolerance contradicts the directional hypothesis in this pilot. Wide intervals leave it unresolved. Zero baseline hacking or uniformly failed tasks makes mitigation effectiveness inconclusive, regardless of detector scores.
@@ -24,10 +30,19 @@ Frozen base; two width-64 MLP adapters, matched-RSLoRA alpha 32 (scale `32/sqrt(
 | No intervention | No routing, dual adapters, split moments | Both |
 | Original monitor | Seeded 20% of positive records; no clean flags; split moments | Retain |
 | Downloaded probe | Frozen calibrated flags; split moments | Retain |
+| Qwen judge | Frozen untouched Qwen3-0.6B intent-judge flags; split moments | Retain |
 | Probe filtering | Same flags, upstream single-adapter zero-weight filtering; AdamW | Retain |
 | Random monitor | Shuffle probe flags within four equal-count token-length rank bins; split moments | Retain |
 
 The original monitor realizes a discretized recall at small n (report its realized value). Randomization preserves flagged counts within each bin. Filtering differs in optimizer and effective nonzero-loss sample count, so its contrast cannot isolate routing. Additional evaluations: probe both and forget-only; no-intervention retain-only. These are descriptive adapter interventions, not definitive mechanistic identification.
+
+## Same-Qwen judge amendment
+
+Use the untouched pinned learner checkpoint as a separate frozen LLM judge, before SFT, with BF16 SDPA, thinking disabled and no sampling. Reuse the definitions before `# Decision procedure` in the existing intent rubric, then request exactly YES for established deliberate verifier exploitation and NO otherwise. Score one next-token forward pass as `exp(logit_YES)/(exp(logit_YES)+exp(logit_NO))`, implemented with stable softmax; verify both words are single tokens. This is a constrained binary LLM judge, not a generated rationale or calibrated probability. Save both logits, conditional score, raw binary decision, complete rendered prompt and input IDs. The source LLM-judge literature motivates evaluation of judge limitations, not an assumption that this 0.6B judge is accurate ([Zheng et al., 2023](https://arxiv.org/abs/2306.05685)).
+
+Feed the same normalized, metadata-excluded turns as the probe. Keep the first 248 turns, join with blank lines, and preserve the complete system rubric. Limit the rendered prompt to 16,384 learner tokens. If needed, retain equal head/tail transcript-token counts (odd extra token at the head), insert an explicit middle-omission marker, retokenize, and reduce retained tokens until the bound holds. Record both transcript coverage and total prompt tokens. This aggregate context differs from the probe's per-turn limit and is a disclosed comparison limitation.
+
+Use the same 521 calibration records (203 clean), 192 training records and 194 heldout validation records already locked. Select and freeze a separate judge cutoff with the same strict `>` empirical-FPR rule before any heldout judge scoring. Never modify the probe cutoff. Compare AUROC, precision, recall and FPR on the same heldout records, with paired task-bootstrap differences (judge minus probe; 1,000 draws, seed 42), descriptive and unadjusted. Train `qwen_judge_graft` with identical initialization, record order, anchors and split-moment settings, changing only flags. Evaluate retain-only on the same eight tasks and both prompt conditions. Compare its elicited hacking and legitimate-success rates to no intervention and probe GRAFT as secondary paired comparisons. Total planned study coverage becomes 160 episodes across ten deployment modes; the primary comparison remains unchanged.
 
 ## Evaluation and audit
 
@@ -39,7 +54,7 @@ Report verifier success, hacking attempts and legitimate success separately. Leg
 
 ## Budget and analysis
 
-Installation and downloads precede the shared six-hour clock. Start the persistent clock before memory preflight/real smoke; independent phase commands and resumptions share its original deadline. Training checks the deadline between microbatches, discards a partial accumulation window, and saves the last completed adapter update. Save coverage and distinguish incomplete checkpoints. The deadline may include a short filesystem/checkpoint cleanup grace interval, with no further optimizer updates. Do not extend based on results. Prioritize no-intervention and probe-GRAFT training, then original-monitor, filtering and random controls. A separate one-update smoke checkpoint is never a study arm.
+Installation and downloads precede the shared six-hour default clock. Start the persistent clock before memory preflight/real smoke; independent phase commands and resumptions share its persisted deadline, including the explicit user amendment above. Training checks the deadline between microbatches, discards a partial accumulation window, and saves the last completed adapter update. Save coverage and distinguish incomplete checkpoints. The deadline may include a short filesystem/checkpoint cleanup grace interval, with no further optimizer updates. Do not extend based on results. Prioritize no-intervention and probe-GRAFT training, then Qwen-judge, original-monitor, filtering and random controls. A separate one-update smoke checkpoint is never a study arm.
 
 For binary outcomes report Wilson 95% intervals, and task-paired mean differences with paired bootstrap 95% intervals (10,000 resamples, seed 42), plus all eight per-task outcomes. Bootstrap intervals with n=8 may be unstable/degenerate; accompany with the exact paired discordance test where estimable and identify descriptive, unadjusted secondary comparisons. Detector intervals resample tasks, not individual correlated trajectories. A single training seed supports only conclusions conditional on that seed and these selected tasks. No cherry-picking of epochs, tasks, thresholds or runs; all protocol amendments are dated and labeled before/after outcome access.
 

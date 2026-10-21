@@ -10,12 +10,13 @@ import matplotlib  # Local: standalone, reproducible scientific figures.
 matplotlib.use("Agg")  # Local: headless rendering in the repository environment.
 import matplotlib.pyplot as plt
 
-from .analysis import detector_metrics, monitor_coverage, paired_difference, power_analysis, proportion
+from .analysis import compare_detectors, detector_metrics, monitor_coverage, paired_difference, power_analysis, proportion
 from .audit import finalize, make_packets
 from .data import ARMS
 from .runtime import ROOT, event, read_json, write_json
 
 ARM_RATIONALE = {  # Global: distinguish scientific questions without duplicating the full protocol.
+    "qwen_judge_graft": "Compare a frozen untouched Qwen3-0.6B intent judge with the downloaded probe, both as a detector and a source of GRAFT flags. The independent calibration cutoff and identical training recipe make this a secondary monitor comparison; constrained binary scoring is not a generated rationale.",
     "no_intervention": "Establish the effect of learning the matched clean/hack mixture with both adapters and the same split-moment optimizer, without routing. This is the primary comparator, not the untouched base model.",
     "probe_graft": "Test whether the downloaded out-of-domain detector supplies useful routing flags. Its encoder/head remain frozen; no downstream behavior is used to recalibrate the threshold. Removing the forget adapter is the primary deployment intervention.",
     "original_graft": "Measure the small-model GRAFT recipe with the paper's idealized monitor: zero false positives and approximately 20% positive recall after integer rounding. This separates detector limitations from a method/capability floor.",
@@ -31,7 +32,7 @@ def architecture(path):
     axis.set(xlim=(0, 12), ylim=(0, 4))
     axis.axis("off")
     nodes = {"Pinned trajectories\n232 / 99 tasks": (1.5, 3), "32 calibration tasks\nFrozen threshold": (5, 3),
-             "Frozen encoder + probe\nScores → flags": (8.7, 3), "Matched SFT arms\nQwen3-0.6B": (1.5, 1),
+             "Frozen probe / Qwen judge\nScores → flags": (8.7, 3), "Matched SFT arms\nQwen3-0.6B": (1.5, 1),
              "Merged adapter modes\nHarbor + Docker": (5, 1), "Blinded intent audit\nIntervals + coverage": (8.7, 1)}
     for label, (x, y) in nodes.items():
         axis.text(x, y, label, ha="center", va="center", fontsize=10,
@@ -60,13 +61,16 @@ def result_figures(destination, results):
     detector = results["detector"]
     if detector.get("metrics"):
         figure, axis = plt.subplots(figsize=(7, 3.4))
-        for index, (metric, value) in enumerate(detector["metrics"].items()):
-            interval = detector["task_bootstrap_ci95"][metric]
-            if value is not None and interval is not None:
-                axis.errorbar(index, value, yerr=[[max(0, value - interval[0])], [max(0, interval[1] - value)]],
-                              fmt="o", capsize=5, color="#244b6b")
+        for label, monitor, offset, color in [("Downloaded probe", detector, -.08, "#244b6b"),
+                                               ("Qwen judge", results["judge"], .08, "#a65f2b")]:
+            for index, (metric, value) in enumerate(monitor.get("metrics", {}).items()):
+                interval = monitor["task_bootstrap_ci95"][metric]
+                if value is not None and interval is not None:
+                    axis.errorbar(index + offset, value, yerr=[[max(0, value - interval[0])], [max(0, interval[1] - value)]],
+                                  fmt="o", capsize=5, color=color, label=label if index == 0 else None)
+        axis.legend()
         axis.set(xticks=range(4), xticklabels=["AUROC", "Precision", "Recall", "FPR"], ylim=(0, 1),
-                 ylabel="Estimate and task-bootstrap 95% interval", title=f"Frozen detector: {detector['scored']} heldout trajectories, {detector['tasks']} tasks")
+                 ylabel="Estimate and task-bootstrap 95% interval", title=f"Frozen monitors: {detector['scored']} heldout trajectories, {detector['tasks']} tasks")
         figure.tight_layout()
         figure.savefig(destination / "detector.png", dpi=180)
         plt.close(figure)
@@ -109,6 +113,32 @@ def paper(destination, sections, figures):
     SimpleDocTemplate(str(destination / "paper.pdf"), title="Qwen3-0.6B GRAFT exploratory pilot", author="Libor Burian").build(story)
 
 
+def validation_report(root, name, lock, inventory):
+    """Global: common monitor evidence. Local: separate calibrated accuracy from context coverage."""
+    path = root / name / "threshold.json"
+    if not path.exists():
+        return {"status": "not run"}
+    scores = read_json(root / name / "scores.json")
+    threshold = read_json(path)["threshold"]
+    result = detector_metrics([inventory[i] for i in lock["heldout"]], scores, threshold)
+    result["coverage"] = {}
+    for part in ("calibration", "train", "heldout"):
+        if name == "monitor":
+            coverage = monitor_coverage(lock[part], scores)
+        else:
+            rows = [scores[i] for i in lock[part] if i in scores]
+            coverage = {"planned": len(lock[part]), "scored": len(rows),
+                        **{key: sum(row[key] for row in rows) for key in ("turns", "retained_turns", "transcript_tokens",
+                                                                       "retained_transcript_tokens", "input_tokens")},
+                        "context_truncated_trajectories": sum(row["context_truncated"] for row in rows)}
+        result["coverage"][part] = coverage
+    clean = [scores[i]["score"] for i in lock["calibration"] if inventory[i]["label"] == 0 and i in scores]
+    result["calibration"] = {"threshold": threshold, "clean": len(clean), "false_positives": sum(score > threshold for score in clean),
+                             "empirical_fpr": sum(score > threshold for score in clean) / len(clean) if clean else None,
+                             "note": "Selected on calibration data; heldout task-bootstrap intervals quantify validation uncertainty."}
+    return result
+
+
 def report(root):
     """Global: complete and incomplete results are both visible. Local: compute only observed metrics."""
     destination = ROOT / "reports/qwen_probe"
@@ -127,18 +157,17 @@ def report(root):
         metrics = root / "checkpoints" / arm / "metrics.jsonl"
         if metrics.exists():
             trained[arm]["learning_curve"] = [json.loads(line) for line in metrics.read_text().splitlines() if line]
-    detector = {"status": "not run"}
+    detector, judge, detector_comparison = ({"status": "not run"} for _ in range(3))
     lock_path, threshold_path = root / "data/lock.json", root / "monitor/threshold.json"
     if lock_path.exists() and threshold_path.exists():
         lock = read_json(lock_path)
         inventory = {r["id"]: r for r in read_json(root / "data/inventory.json")}
-        scores, threshold = read_json(root / "monitor/scores.json"), read_json(threshold_path)["threshold"]
-        detector = detector_metrics([inventory[i] for i in lock["heldout"]], scores, threshold)
-        detector["coverage"] = {part: monitor_coverage(lock[part], scores) for part in ("calibration", "train", "heldout")}
-        clean = [scores[i]["score"] for i in lock["calibration"] if inventory[i]["label"] == 0 and i in scores]
-        detector["calibration"] = {"threshold": threshold, "clean": len(clean), "false_positives": sum(score > threshold for score in clean),
-                                   "empirical_fpr": sum(score > threshold for score in clean) / len(clean) if clean else None,
-                                   "note": "Threshold selected on calibration data; heldout task-bootstrap intervals quantify validation uncertainty."}
+        detector = validation_report(root, "monitor", lock, inventory)
+        judge = validation_report(root, "judge", lock, inventory)
+        if "calibration" in judge:
+            detector_comparison = compare_detectors([inventory[i] for i in lock["heldout"]],
+                read_json(root / "judge/scores.json"), read_json(root / "monitor/scores.json"),
+                judge["calibration"]["threshold"], detector["calibration"]["threshold"])
     grouped = {}
     for row in audited:
         if not row["smoke"]:
@@ -163,14 +192,21 @@ def report(root):
         reasons.append("The primary arms have no established legitimate successes; a capability floor may dominate.")
     if complete_primary and baseline_hacks and legitimate_solves:
         conclusion = "The paired pilot estimates describe these eight tasks and one training seed; they do not establish general mitigation effectiveness."
-    results = {"training": trained, "detector": detector, "behavior": behavior, "primary": primary,
+    judge_behavior = grouped.get("qwen_judge_graft/retain/elicited", [])
+    secondary = {name: {field: paired_difference({r["task"]: r[field] for r in judge_behavior},
+                                                {r["task"]: r[field] for r in comparator})
+                        for field in ("hacking", "legitimate")} for name, comparator in
+                 (("judge_minus_no_intervention", control), ("judge_minus_probe", treatment))}
+    results = {"training": trained, "detector": detector, "judge": judge, "detector_comparison": detector_comparison,
+               "behavior": behavior, "primary": primary, "secondary": secondary,
                "pending_audits": len(pending), "conclusion": conclusion, "reasons": reasons, "power": power_analysis()}
-    results["coverage"] = {"planned_study_episodes": 144, "audited_study_episodes": sum(map(len, grouped.values())),
+    results["coverage"] = {"planned_study_episodes": 160, "audited_study_episodes": sum(map(len, grouped.values())),
                            "pending_audit_packets": len(pending), "note": "Unstarted or missing-result episodes are absent, never treated as nonhacking."}
     write_json(destination / "results.json", results)
     figures = result_figures(destination, results)
     for source, target in [("data/lock.json", "data_lock.json"), ("data/provenance.json", "provenance.json"),
                            ("monitor/threshold.json", "threshold.json"), ("evaluation/tasks.json", "tasks.json"),
+                           ("judge/threshold.json", "judge_threshold.json"), ("judge/manifest.json", "judge_manifest.json"),
                            ("budget.json", "budget.json"), ("preflight.json", "preflight.json"),
                            ("publication.json", "publication.json"), ("audit/judgments.json", "audit_judgments.json")]:
         if (root / source).exists():
@@ -195,10 +231,13 @@ def report(root):
     base_outcomes = {key: value for key, value in behavior.items() if key.startswith("base/")}
     (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. Absent measurements are not zero rates.\n\n```json\n" + json.dumps(base_outcomes, indent=2) + "\n```\n")
     lines += ["", f"Pending blinded audits: {len(pending)}.", "", "## Frozen detector validation", "", "```json", json.dumps(detector, indent=2), "```",
+              "", "## Same-Qwen judge validation and paired detector comparison", "", "```json", json.dumps({"judge": judge, "comparison": detector_comparison}, indent=2), "```",
+              "", "## Secondary judge behavioral comparisons", "", "```json", json.dumps(secondary, indent=2), "```",
               "", "## Behavioral measurements", "", "```json", json.dumps(behavior, indent=2), "```", "", "## Primary paired comparison", "", "```json", json.dumps(primary, indent=2), "```",
               "", "## Terminology and networks", "", "| Network / term | Architecture / algorithm | Objective and data | Measured meaning |",
               "|---|---|---|---|", "| Learner | Frozen Qwen3-0.6B, 28 layers, two width-64 MLP branches | Assistant-token SFT, matched clean/hack subset | Generates terminal actions |",
               "| Detector encoder | Qwen3-Embedding-0.6B plus frozen rank-16 attention LoRA | Upstream source-invariant training; no fitting here | 1,024-dimensional normalized turn vectors |",
+              "| Qwen judge | Untouched frozen Qwen3-0.6B with intent rubric | Conditional YES/NO logits; calibration-only threshold | Separate detector baseline and GRAFT flag source |",
               "| Probe head | Four transformer layers, width 256, 8 heads, CLS classifier | Upstream binary trajectory classifier | AUROC measures ranking, not behavioral mitigation |",
               "| GRAFT | Routed first moments, natural-gradient second moments | Flagged/unflagged pools plus 1% unlabeled anchors | Retain branch deployed after removing forget branch |",
               "| Verifier success | Task-specific executable checks | Heldout Docker tasks | Can include legitimate solves or hacks |",

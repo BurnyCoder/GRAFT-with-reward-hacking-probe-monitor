@@ -11,8 +11,8 @@ from peft import PeftModel  # Local: official frozen LoRA loading.
 from transformers import AutoModel, AutoTokenizer  # Local: matching embedding model/tokenizer.
 
 from ..download import MANIFEST
-from ..protocol import calibrate, freeze_threshold
-from ..runtime import deadline, event, file_hash, fingerprint, read_json, write_json
+from ..monitoring import validate_scores
+from ..runtime import deadline, event, file_hash, fingerprint, read_json
 from .model import TurnTransformerProbe, last_token_pool
 from .preprocess import VERSION
 
@@ -59,7 +59,7 @@ class FrozenDetector:
         for start in range(0, len(missing), 4):  # Local: four frozen-encoder turns fit the 8 GB device.
             end = deadline(self.root)
             if end and time.time() >= end:
-                raise TimeoutError("Six-hour experiment deadline reached while scoring")
+                raise TimeoutError("Registered experiment deadline reached while scoring")
             batch = missing[start:start + 4]
             texts = [item[1] for item in batch]
             tokenized = self.tokenizer(texts, padding=True, truncation=True, max_length=4096, return_tensors="pt").to("cuda")
@@ -78,36 +78,13 @@ class FrozenDetector:
                 "tokens_before_turn_truncation": sum(lengths.values()),
                 "retained_tokens": sum(min(x, 4096) for x in lengths.values()), "input_hash": fingerprint(turns)}
 
+    def close(self):
+        """Local: persist and release the embedding database before the phase process exits."""
+        self.database.close()
+
 
 def validate_monitor(root):
     """Global: calibration precedes heldout access. Local: cache flags before unloading the detector."""
     lock = read_json(root / "data/lock.json")
-    directory = root / "monitor"
-    directory.mkdir(exist_ok=True)
-    manifest_path = directory / "manifest.json"
     manifest = {"dataset": lock["fingerprint"], "detector": MANIFEST, "preprocessing": VERSION}
-    if manifest_path.exists() and read_json(manifest_path) != manifest:
-        raise ValueError("Monitor cache belongs to different model/tokenizer/data/configuration")
-    write_json(manifest_path, manifest)
-    rows = {r["id"]: r for r in read_json(root / "data/inventory.json")}
-    score_path = directory / "scores.json"
-    scores = read_json(score_path) if score_path.exists() else {}
-    detector = FrozenDetector(root)  # Local: called in an isolated phase process, then unloaded on exit.
-    def score_ids(identities):
-        """Global: complete evidence and resumability. Local: persist each completed trajectory."""
-        for identity in identities:
-            if identity not in scores:
-                row = rows[identity]
-                scores[identity] = detector.score(row["turns"])
-                write_json(score_path, scores)
-                event("monitor_result", record_id=identity, **scores[identity])
-    score_ids(lock["calibration"])
-    clean = [scores[i]["score"] for i in lock["calibration"] if rows[i]["label"] == 0]
-    frozen = {"threshold": calibrate(clean), "comparison": ">", "calibration": fingerprint([(i, scores[i]) for i in lock["calibration"]]),
-              "n_clean": len(clean), "target_empirical_fpr": 0.05}
-    freeze_threshold(directory / "threshold.json", frozen)
-    event("threshold_frozen", **frozen)
-    score_ids(lock["train"])
-    score_ids(lock["heldout"])
-    detector.database.close()
-    event("monitor_complete", trajectories=len(scores))
+    validate_scores(root, "monitor", manifest, FrozenDetector)  # Local: same existing manifest and threshold bytes.

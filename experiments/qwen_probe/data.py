@@ -14,7 +14,7 @@ from .protocol import partition_tasks, select_balanced, shuffled_flags
 from .runtime import ROOT, event, fingerprint, read_json, write_json
 from .detector.preprocess import VERSION, normalize_messages, trajectory_messages
 
-ARMS = ("no_intervention", "probe_graft", "original_graft", "probe_filtering", "random_graft")
+ARMS = ("no_intervention", "probe_graft", "qwen_judge_graft", "original_graft", "probe_filtering", "random_graft")
 
 
 def upstream_conversion(root):
@@ -127,6 +127,11 @@ def write_pools(root):
     random_flags = shuffled_flags(rows, probe_flags)
     flags_by_arm = {"probe_graft": probe_flags, "probe_filtering": probe_flags, "random_graft": random_flags,
                     "no_intervention": {r["id"]: False for r in rows}, "original_graft": {r["id"]: r["id"] in oracle for r in rows}}
+    if (root / "judge/threshold.json").exists():  # Local: independent original phases can run before judge validation.
+        judge_scores = read_json(root / "judge/scores.json")
+        judge_threshold = read_json(root / "judge/threshold.json")["threshold"]
+        if all(row["id"] in judge_scores for row in rows):
+            flags_by_arm["qwen_judge_graft"] = {r["id"]: judge_scores[r["id"]]["score"] > judge_threshold for r in rows}
     summary = {}
     for arm, flags in flags_by_arm.items():
         directory = root / "data" / arm

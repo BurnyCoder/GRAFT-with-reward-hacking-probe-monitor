@@ -4,9 +4,9 @@ This research extension adapts [GRAFT's Terminal Wrench SFT experiment](https://
 
 ## Method and use
 
-The pilot reserves 32 training-side calibration tasks from the published 232/99 split, freezes a threshold at empirical clean FPR ≤5%, and selects up to 192 balanced trajectories. A memory preflight fixes one common training context limit. Five SFT treatments plus the base model compare downloaded-probe GRAFT, original simulated-monitor GRAFT, length-matched random monitoring, filtering, and no intervention. The recipe keeps a frozen base, width-64 branches, effective batch 48, learning rate 5e-4, five epochs, 1% unlabeled anchors and split-moment optimization. Eight heldout Docker tasks, two prompt conditions and blinded intent audits provide exploratory behavioral evidence.
+The pilot reserves 32 training-side calibration tasks from the published 232/99 split, freezes monitor thresholds at empirical clean FPR ≤5%, and selects up to 192 balanced trajectories. A memory preflight fixes one common training context limit. Six SFT treatments plus the base model compare downloaded-probe GRAFT, same-Qwen LLM-judge GRAFT, original simulated-monitor GRAFT, length-matched random monitoring, filtering, and no intervention. The frozen untouched Qwen3-0.6B judge uses an intent rubric and conditional YES/NO token scores; its detection quality and routing treatment are both compared with the probe. The recipe keeps a frozen base, width-64 branches, effective batch 48, learning rate 5e-4, five epochs, 1% unlabeled anchors and split-moment optimization. Eight heldout Docker tasks, two prompt conditions and blinded intent audits provide exploratory behavioral evidence.
 
-The full [preregistered protocol](docs/protocol.md) defines selection, falsification, controls, uncertainty and the six-hour cap. [Implementation notes](docs/implementation.md) explain compatibility changes. **Engineering checks are not evidence of mitigation.** Current coverage and conclusions are in the [consolidated report](reports/qwen_probe/summary.md), [machine-readable results](reports/qwen_probe/results.json), and [PDF paper](reports/qwen_probe/paper.pdf), authored by Libor Burian.
+The full [preregistered protocol](docs/protocol.md) defines selection, falsification, controls, uncertainty, the six-hour default cap and the user's dated ten-more-hours amendment. [Implementation notes](docs/implementation.md) explain compatibility changes. **Engineering checks are not evidence of mitigation.** Current coverage and conclusions are in the [consolidated report](reports/qwen_probe/summary.md), [machine-readable results](reports/qwen_probe/results.json), and [PDF paper](reports/qwen_probe/paper.pdf), authored by Libor Burian.
 
 ```bash
 git clone --recursive https://github.com/BurnyCoder/GRAFT-with-reward-hacking-probe-monitor.git
@@ -19,7 +19,7 @@ uv run python -m experiments.qwen_probe run --profile pilot
 
 Prerequisites: Linux/WSL, Python 3.12, [uv](https://docs.astral.sh/uv/getting-started/installation/), working Docker, an NVIDIA GPU with approximately 8 GB VRAM and a CUDA-13-compatible driver. Allow substantial disk space for the 7 GB task checkout, two model snapshots, CUDA packages, Docker layers and logs; 40 GB free is a practical starting allowance, not a measured maximum. The default uses one GPU worker and one episode at a time. No paid LLM API is needed. All generated files and model caches stay under the checkout; `.env` and artifacts are ignored by Git.
 
-`run` downloads and verifies inputs, prebuilds deterministic Docker tasks, fixes the dataset after a memory check, scores with the frozen detector, unloads it, and runs a one-update real smoke test. It then **stops for the smoke audit**. After judgments are recorded, rerun the same command: the persistent deadline is retained. The primary two trained arms and their behavioral evaluation run before secondary controls. Each completed phase is reusable; failed/incomplete trials are recorded rather than selectively rerun. A resumed interrupted optimizer run is not silently restarted.
+`run` downloads and verifies inputs, prebuilds deterministic Docker tasks, fixes the dataset after a memory check, scores with the frozen probe and Qwen judge in separate processes, unloads them, and runs a one-update real smoke test. It then **stops for the smoke audit**. After judgments are recorded, rerun the same command: the persistent deadline is retained. The primary two trained arms and their behavioral evaluation run before secondary controls. Each completed phase is reusable; failed/incomplete trials are recorded rather than selectively rerun. A resumed interrupted optimizer run is not silently restarted.
 
 ## Phases and audit
 
@@ -27,6 +27,7 @@ Prerequisites: Linux/WSL, Python 3.12, [uv](https://docs.astral.sh/uv/getting-st
 uv run python -m experiments.qwen_probe download
 uv run python -m experiments.qwen_probe prepare
 uv run python -m experiments.qwen_probe validate-monitor
+uv run python -m experiments.qwen_probe validate-judge
 uv run python -m experiments.qwen_probe smoke
 uv run python -m experiments.qwen_probe train
 uv run python -m experiments.qwen_probe evaluate
@@ -55,7 +56,9 @@ flowchart LR
     A[Pinned Terminal Wrench trajectories] --> B[Task separation and common data lock]
     B --> C[Training-side calibration]
     C --> D[Frozen encoder and trajectory probe]
+    C --> L[Frozen Qwen3-0.6B intent judge]
     D --> E[Cached monitor flags]
+    L --> E
     B --> F[Matched SFT records]
     E --> G[Existing GRAFT trainer and controls]
     F --> G

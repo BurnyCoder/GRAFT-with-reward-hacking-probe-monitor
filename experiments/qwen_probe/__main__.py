@@ -30,7 +30,7 @@ def smoke(root):
 
 
 def run(root):
-    """Global: fixed priorities within six hours. Local: visible, independently callable phases."""
+    """Global: fixed priorities within the registered deadline. Local: independently callable phases."""
     from .data import ARMS
     from .evaluation import evaluate
     from .prepare import prepare
@@ -42,6 +42,7 @@ def run(root):
         return
     prepare(root)
     execute([sys.executable, "-u", "-m", "experiments.qwen_probe", "validate-monitor"], deadline=deadline(root))
+    execute([sys.executable, "-u", "-m", "experiments.qwen_probe", "validate-judge"], deadline=deadline(root))
     if not smoke(root):
         report(root)
         return
@@ -60,7 +61,7 @@ def run(root):
 def main():
     """Global: reproducible CLI. Local: parse once, then dispatch a named modular phase."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("phase", choices=["run", "download", "prepare", "validate-monitor", "train", "evaluate", "smoke", "audit", "report", "publish"])
+    parser.add_argument("phase", choices=["run", "download", "prepare", "validate-monitor", "validate-judge", "train", "evaluate", "smoke", "audit", "report", "publish"])
     parser.add_argument("--profile", choices=["pilot"], default="pilot")
     parser.add_argument("--arm", help="Run one registered training arm")
     parser.add_argument("--packet", help="Opaque packet ID for recording an audit judgment")
@@ -85,6 +86,9 @@ def main():
     elif args.phase == "train":
         from .training import train
         train(root, arm=args.arm)
+    elif args.phase == "validate-judge":
+        from .judge import validate_judge
+        validate_judge(root)
     elif args.phase == "evaluate":
         from .evaluation import evaluate
         evaluate(root)

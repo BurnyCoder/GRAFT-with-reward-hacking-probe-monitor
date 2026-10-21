@@ -44,27 +44,29 @@ def paired_difference(treatment, control):
             "warning": "Conditional on one training seed; n=8 bootstrap may be degenerate; missing pairs are not imputed"}
 
 
+def classification_metrics(rows, scores, threshold):
+    """Global: common detector definitions. Local: undefined AUROC or precision remains missing."""
+    labels = np.array([row["label"] for row in rows])
+    values = np.array([scores[row["id"]]["score"] for row in rows])
+    flags = values > threshold  # Local: equality is unflagged for both frozen monitors.
+    positive, negative = labels == 1, labels == 0
+    return {"auroc": float(roc_auc_score(labels, values)) if len(set(labels)) == 2 else None,
+            "precision": float(labels[flags].mean()) if flags.any() else None,
+            "recall": float(flags[positive].mean()) if positive.any() else None,
+            "fpr": float(flags[negative].mean()) if negative.any() else None}
+
+
 def detector_metrics(rows, scores, threshold):
     """Global: heldout measurement, no refitting. Local: task-cluster bootstrap for all metrics."""
     available = [r for r in rows if r["id"] in scores]
-    def measure(batch):
-        """Global: transparent denominators. Local: undefined AUROC/precision return None."""
-        labels = np.array([r["label"] for r in batch])
-        values = np.array([scores[r["id"]]["score"] for r in batch])
-        flags = values > threshold
-        positive, negative = labels == 1, labels == 0
-        return {"auroc": float(roc_auc_score(labels, values)) if len(set(labels)) == 2 else None,
-                "precision": float(labels[flags].mean()) if flags.any() else None,
-                "recall": float(flags[positive].mean()) if positive.any() else None,
-                "fpr": float(flags[negative].mean()) if negative.any() else None}
     if not available:
         return {"status": "incomplete", "scored": 0, "planned": len(rows)}
-    values = measure(available)
+    values = classification_metrics(available, scores, threshold)
     grouped = {task: [r for r in available if r["task"] == task] for task in sorted({r["task"] for r in available})}
     rng, bootstraps = np.random.default_rng(42), []
     for _ in range(1000):
         sampled = rng.choice(list(grouped), size=len(grouped), replace=True)
-        bootstraps.append(measure([r for task in sampled for r in grouped[task]]))
+        bootstraps.append(classification_metrics([r for task in sampled for r in grouped[task]], scores, threshold))
     intervals = {}
     for metric in values:
         draws = [b[metric] for b in bootstraps if b[metric] is not None]
@@ -72,6 +74,34 @@ def detector_metrics(rows, scores, threshold):
     return {"status": "complete" if len(available) == len(rows) else "incomplete", "scored": len(available),
             "planned": len(rows), "tasks": len(grouped), "metrics": values, "task_bootstrap_ci95": intervals,
             "positive": sum(r["label"] for r in available), "negative": sum(not r["label"] for r in available)}
+
+
+def compare_detectors(rows, judge_scores, probe_scores, judge_threshold, probe_threshold):
+    """Global: secondary paired measurement. Local: resample identical tasks for both fixed detectors."""
+    common = [row for row in rows if row["id"] in judge_scores and row["id"] in probe_scores]
+    if not common:
+        return {"status": "incomplete", "paired_records": 0}
+
+    def difference(batch):
+        """Local: subtract metrics only when both denominators are defined."""
+        judge = classification_metrics(batch, judge_scores, judge_threshold)
+        probe = classification_metrics(batch, probe_scores, probe_threshold)
+        return {metric: judge[metric] - probe[metric] if judge[metric] is not None and probe[metric] is not None
+                else None for metric in judge}
+
+    grouped = {task: [row for row in common if row["task"] == task] for task in sorted({row["task"] for row in common})}
+    rng, samples = np.random.default_rng(42), []
+    for _ in range(1000):
+        tasks = rng.choice(list(grouped), size=len(grouped), replace=True)
+        samples.append(difference([row for task in tasks for row in grouped[task]]))
+    values = difference(common)
+    valid = {metric: [sample[metric] for sample in samples if sample[metric] is not None] for metric in values}
+    return {"status": "complete" if len(common) == len(rows) else "incomplete", "paired_records": len(common),
+            "paired_tasks": len(grouped), "judge_minus_probe": values,
+            "task_bootstrap_ci95": {metric: np.quantile(draws, [.025, .975]).tolist() if draws else None
+                                     for metric, draws in valid.items()},
+            "valid_bootstrap_draws": {metric: len(draws) for metric, draws in valid.items()},
+            "note": "Secondary unadjusted comparison; conditional on fixed calibration cutoffs and one data sample."}
 
 
 def monitor_coverage(identities, scores):
