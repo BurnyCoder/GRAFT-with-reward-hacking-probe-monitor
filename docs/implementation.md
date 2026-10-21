@@ -20,6 +20,8 @@ Three Drive artifacts are verified against version-controlled SHA-256 hashes bef
 
 Normalized turn text is the only data input to the monitor. Ground-truth labels and source provenance are stored separately. Source labels are used for balanced SFT selection, simulated-monitor controls and heldout measurement, never inserted into the monitor. First-user red-team appendix stripping is shared with the released conversion. Role-tag and tool normalization reproduces the notebook, including its inline-tool suppression behavior. Exact duplicate normalized inputs are audited, but this is not a semantic contamination detector.
 
+The [provenance audit](probe-provenance.md) records what the pinned repository and source dataset cards reveal, and why upstream task/trajectory exposure remains unresolved.
+
 ## Local execution and failure handling
 
 Scoring runs in its own process and caches scores and turn embeddings before training. Child exit frees the monitor's GPU memory. A single Transformers worker provides the limited text chat-completions interface Harbor requires; generation uses the official `generate` API, fixed non-thinking settings and complete prompt/response logs. Requests are serialized. The bridge is bound to localhost, and process-group cleanup targets only the server created by the experiment. The upstream broad `pkill` shutdown script is never called.

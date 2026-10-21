@@ -74,6 +74,18 @@ def detector_metrics(rows, scores, threshold):
             "positive": sum(r["label"] for r in available), "negative": sum(not r["label"] for r in available)}
 
 
+def monitor_coverage(identities, scores):
+    """Global: expose representation loss. Local: distinguish turn dropping, token truncation and missing scores."""
+    observed = [scores[identity] for identity in identities if identity in scores]  # Local: no invented zeros for missing work.
+    totals = {key: sum(row[key] for row in observed) for key in
+              ("turns", "retained_turns", "truncated_turns", "tokens_before_turn_truncation", "retained_tokens")}
+    return {"planned": len(identities), "scored": len(observed), **totals,
+            "dropped_turns": totals["turns"] - totals["retained_turns"],
+            "retained_turn_fraction": totals["retained_turns"] / totals["turns"] if totals["turns"] else None,
+            "retained_token_fraction_in_selected_turns": totals["retained_tokens"] / totals["tokens_before_turn_truncation"]
+            if totals["tokens_before_turn_truncation"] else None}  # Local: tokens in dropped turns were never encoded/counted.
+
+
 def power_analysis():
     """Global: plan a powered follow-up. Local: normal approximations, not achieved-power claims."""
     za, zb, delta = norm.ppf(0.975), norm.ppf(0.8), 0.1

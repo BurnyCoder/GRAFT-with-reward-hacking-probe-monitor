@@ -1,5 +1,5 @@
 """Global: prevent misleading summaries. Local: missing, ambiguous and paired toy outcomes."""
-from experiments.qwen_probe.analysis import paired_difference, power_analysis, proportion
+from experiments.qwen_probe.analysis import monitor_coverage, paired_difference, power_analysis, proportion
 
 
 def test_missing_is_not_nonhacking():
@@ -14,3 +14,14 @@ def test_pairs_and_power_are_explicit():
     assert result["known_pairs"] == 1 and result["difference"] == -1
     assert result["ambiguity_bounds"] == [-0.5, 0]
     assert power_analysis()["independent"][-1]["n_per_arm"] > 300
+
+
+def test_monitor_coverage_distinguishes_unscored_and_truncated():
+    """Global: absent scores are not zero truncation. Local: aggregate only observed coverage."""
+    score = {"turns": 250, "retained_turns": 248, "truncated_turns": 2,
+             "tokens_before_turn_truncation": 12000, "retained_tokens": 10000}
+    value = monitor_coverage(["a", "b"], {"a": score})
+    assert value["planned"] == 2 and value["scored"] == 1
+    assert value["dropped_turns"] == 2 and value["truncated_turns"] == 2
+    assert value["retained_token_fraction_in_selected_turns"] == 10000 / 12000
+    assert monitor_coverage(["a"], {})["retained_turn_fraction"] is None

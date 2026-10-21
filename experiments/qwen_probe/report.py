@@ -10,7 +10,7 @@ import matplotlib  # Local: standalone, reproducible scientific figures.
 matplotlib.use("Agg")  # Local: headless rendering in the repository environment.
 import matplotlib.pyplot as plt
 
-from .analysis import detector_metrics, paired_difference, power_analysis, proportion
+from .analysis import detector_metrics, monitor_coverage, paired_difference, power_analysis, proportion
 from .audit import finalize, make_packets
 from .data import ARMS
 from .runtime import ROOT, event, read_json, write_json
@@ -129,7 +129,13 @@ def report(root):
     if lock_path.exists() and threshold_path.exists():
         lock = read_json(lock_path)
         inventory = {r["id"]: r for r in read_json(root / "data/inventory.json")}
-        detector = detector_metrics([inventory[i] for i in lock["heldout"]], read_json(root / "monitor/scores.json"), read_json(threshold_path)["threshold"])
+        scores, threshold = read_json(root / "monitor/scores.json"), read_json(threshold_path)["threshold"]
+        detector = detector_metrics([inventory[i] for i in lock["heldout"]], scores, threshold)
+        detector["coverage"] = {part: monitor_coverage(lock[part], scores) for part in ("calibration", "train", "heldout")}
+        clean = [scores[i]["score"] for i in lock["calibration"] if inventory[i]["label"] == 0 and i in scores]
+        detector["calibration"] = {"threshold": threshold, "clean": len(clean), "false_positives": sum(score > threshold for score in clean),
+                                   "empirical_fpr": sum(score > threshold for score in clean) / len(clean) if clean else None,
+                                   "note": "Threshold selected on calibration data; heldout task-bootstrap intervals quantify validation uncertainty."}
     grouped = {}
     for row in audited:
         if not row["smoke"]:
@@ -166,6 +172,10 @@ def report(root):
                            ("publication.json", "publication.json"), ("audit/judgments.json", "audit_judgments.json")]:
         if (root / source).exists():
             shutil.copy2(root / source, destination / target)
+    for arm in trained:  # Local: publish portable evidence of the exact invocation, including incomplete runs.
+        configuration = root / "checkpoints" / arm / "configuration.json"
+        if configuration.exists():
+            shutil.copy2(configuration, destination / f"{arm}_configuration.json")
     lines = ["# Consolidated experiment results", "", conclusion, " ".join(reasons), "",
              "This report is generated from local manifests and frozen audits. See [protocol](../../docs/protocol.md) for the prespecified method.", "",
              "| Experiment | Updates | Completed recipe | Status |", "|---|---:|---|---|"]
@@ -174,7 +184,7 @@ def report(root):
         (destination / f"{arm}.md").write_text(f"# {arm}\n\n" + ARM_RATIONALE[arm] + "\n\n" +
             f"Updates: {progress['steps']}. Complete planned training: {progress['complete']}.\n\n" +
             "Method and hyperparameter rationale: [preregistered protocol](../../docs/protocol.md). " +
-            "Exact optimizer arguments are in results.json and the checkpoint configuration. " +
+            "Exact optimizer arguments are in the per-arm configuration JSON when the run has started. " +
             "The smoke checkpoint is an engineering check and excluded from study comparisons.\n\n" +
             "Learning: completion of parameter updates alone does not establish hacking mitigation; inspect the blinded behavioral comparison and capability safeguard in [summary](summary.md).\n")
     (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. See [summary](summary.md) for actual episode coverage and audited rates; absent measurements are not zero rates.\n")
