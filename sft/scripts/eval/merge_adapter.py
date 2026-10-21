@@ -74,8 +74,12 @@ def merge(
     print(f"effective scales: retain={s_r:.6f} forget={s_f:.6f}")
 
     index_path = base_model_dir / "model.safetensors.index.json"
-    index = json.loads(index_path.read_text())
-    weight_map = index["weight_map"]
+    if index_path.exists():  # Small-model extension: preserve the published sharded path.
+        weight_map = json.loads(index_path.read_text())["weight_map"]
+    else:  # Qwen3-0.6B ships one safetensors file; tied lm_head may be omitted intentionally.
+        # Source: https://huggingface.co/docs/safetensors/torch_shared_tensors
+        with safe_open(base_model_dir / "model.safetensors", framework="pt", device="cpu") as weights:
+            weight_map = {key: "model.safetensors" for key in weights.keys()}
     shards = sorted(set(weight_map.values()))
     print(f"shards: {len(shards)}")
 

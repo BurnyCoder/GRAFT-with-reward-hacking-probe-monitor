@@ -15,9 +15,10 @@ so each example's backward is a "mini-pass" determined by its classification:
   CLASS_RETAIN       → set_scales(1, 0) before forward; hooks zero forget params
                        (redundant but belt-and-suspenders); restore (1, 1) after.
 
-Loss scaling matches canonical's `1/B_full` (= `world_size / step_size_global`
-in DDP terms). After DDP averaging, each example contributes `1/B_full` to its
-target adapter's gradient. Adapter grad magnitude scales with label fraction.
+The released default applies `world_size / step_size_global` before Accelerator's
+own accumulation divisor. The pilot's opt-in --correct-accumulation removes that
+extra normalization; after DDP averaging each example contributes 1/B_full.
+Adapter grad magnitude still scales with label fraction.
 
 --split-moment (updated GRAFT method): per-param hooks CAPTURE the incoming
 natural gradient into `p._pre_routing_grad` (Adam's v source) and return
@@ -49,6 +50,9 @@ if not hasattr(_fsdp, "register_fsdp_forward_method"):
 import argparse
 import math
 import os
+import json  # Pilot: save machine-readable progress and full timestamped child logs.
+import signal  # Pilot: checkpoint our trainer when the experiment deadline expires.
+import time  # Pilot: wall-clock deadline shared by all experiment phases.
 from pathlib import Path
 
 import torch
@@ -71,6 +75,12 @@ CKPT_DIR = Path(os.environ.get("GRAFT_SFT_CKPT_DIR", "/workspace/training/checkp
 
 def parse_args():
     p = argparse.ArgumentParser()
+    # Pilot options are opt-in so original configurations retain their released behavior.
+    p.add_argument("--attention", default="flash_attention_2", choices=["flash_attention_2", "sdpa", "eager"])
+    p.add_argument("--liger-loss", action="store_true")  # Supported Qwen3 fused linear CE.
+    p.add_argument("--correct-accumulation", action="store_true")  # Accelerator already divides by accumulation.
+    p.add_argument("--stable-order", action="store_true")  # Record IDs decouple order from monitor flags.
+    p.add_argument("--cache-key", default="")  # Pilot caller fingerprints model/tokenizer/data/config.
     p.add_argument("--epochs", type=int, default=3)
     p.add_argument("--lr", type=float, default=1e-4)
     p.add_argument("--d-retain", type=int, default=200)
@@ -296,9 +306,12 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         args.model_name,
         dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2",
+        attn_implementation=args.attention,
         trust_remote_code=True,
     )
+    if args.liger_loss:  # Patch before injecting custom MLPs; do not replace their forwards.
+        from experiments.qwen_probe.compat import configure_loss
+        configure_loss(model)
     inject_adapters(
         model, d_retain=args.d_retain, d_forget=args.d_forget,
         layer_start=args.layer_start, layer_end=args.layer_end,
@@ -341,8 +354,10 @@ def main():
         filter_overlong=args.filter_overlong,
         forget_only_prob=args.forget_only_prob,
         no_routing=args.no_routing,
+        stable_order=args.stable_order,  # Pilot: same sample order across all routing treatments.
     )
-    eval_dl_retain, eval_dl_forget = build_eval_loaders(tokenizer, args.max_length)
+    if not args.no_evals:  # Pilot uses agentic evaluation; avoid needless heldout tokenization.
+        eval_dl_retain, eval_dl_forget = build_eval_loaders(tokenizer, args.max_length)
     accelerator.print(
         f"train examples: {bundle.n_train_examples} "
         f"(forget={bundle.n_forget_examples}, unclassified={bundle.n_unclassified_examples}, "
@@ -398,7 +413,8 @@ def main():
             model, retain_opt, forget_opt, bundle.train_dataloader = accelerator.prepare(
                 model, retain_opt, forget_opt, bundle.train_dataloader
             )
-    eval_dl_retain, eval_dl_forget = accelerator.prepare(eval_dl_retain, eval_dl_forget)
+    if not args.no_evals:
+        eval_dl_retain, eval_dl_forget = accelerator.prepare(eval_dl_retain, eval_dl_forget)
 
     # Re-grab param lists from the wrapped model so hooks apply to the right tensors
     retain_params, forget_params, general_params = gr_param_groups(accelerator.unwrap_model(model))
@@ -415,7 +431,11 @@ def main():
 
     # Fixed loss scale (canonical's 1/B_full → world_size/step_size_global per example,
     # so DDP-averaged gradient equals 1/step_size_global × Σ per-example grads).
-    loss_scale = world_size / args.step_size
+    if args.correct_accumulation:
+        from experiments.qwen_probe.compat import loss_scale as accumulation_scale
+        loss_scale = accumulation_scale(world_size, args.step_size, corrected=True)
+    else:
+        loss_scale = world_size / args.step_size  # Preserve the released implementation by default.
 
     # ---- Eval at step 0 (baseline before any training) ----
     # Step-0 eval is the base Qwen3-8B on held-out splits (adapters at init have
@@ -423,7 +443,7 @@ def main():
     # future runs skip the computation and load the cached values.
     if not args.no_evals:
         # Cache file is mode-specific because 3-adapter eval has different config keys.
-        cache_suffix = "_3adp" if args.use_general_adapter else ""
+        cache_suffix = ("_3adp" if args.use_general_adapter else "") + ("_" + args.cache_key if args.cache_key else "")
         step0_cache_path = Path(os.environ.get("GRAFT_SFT_DATA_DIR", "/workspace/training/data")) / f"step0_eval_cache{cache_suffix}.json"
         eval_metrics_step0 = None
         if step0_cache_path.exists():
@@ -457,6 +477,13 @@ def main():
     accelerator.print("starting training")
     optim_step = 0
     done = False
+    interrupted = False  # Pilot: partial checkpoints must never be described as completed runs.
+    def request_stop(signum, frame):
+        """Global: respect compute cap. Local: stop between microbatches and save adapter weights."""
+        nonlocal interrupted
+        interrupted = True
+    signal.signal(signal.SIGTERM, request_stop)  # Only this trainer receives its parent's group signal.
+    deadline = float(os.environ.get("GRAFT_DEADLINE", "inf"))  # Absolute timestamp, not reset per arm.
 
     for epoch in range(args.epochs):
         if done:
@@ -512,6 +539,9 @@ def main():
             unwrapped_model = accelerator.unwrap_model(model)
 
             for b in buffer:
+                if interrupted or time.time() >= deadline:  # Do not apply a partial accumulation window.
+                    interrupted, done = True, True
+                    break
                 cls = int(b["classification"].item())
                 with accelerator.accumulate(model):
                     if args.gradient_ascent:
@@ -596,6 +626,8 @@ def main():
                                 else:
                                     set_scales(unwrapped_model, retain_scale=1.0, forget_scale=1.0)
 
+            if interrupted:  # Discard unfinished gradients; checkpoint the last complete update.
+                break
             # Step optimizers (gated) and zero grads.
             # Gradient-ascent baseline: only retain_opt steps; forget adapter stays at init.
             # Three-way routing: retain_opt steps when any unc+retain examples globally;
@@ -650,7 +682,7 @@ def main():
                 "train/n_forget_local": n_forget_local,
                 "train/n_unclassified_local": n_unclassified_local,
                 "train/n_retain_local": n_retain_local,
-                "train/epoch": epoch + (optim_step + 1) / max(1, total_optim_steps_per_epoch),
+                "train/epoch": epoch + ((optim_step % max(1, total_optim_steps_per_epoch)) + 1) / max(1, total_optim_steps_per_epoch),
             }
             for cls, name in [(CLASS_FORGET, "forget"), (CLASS_UNCLASSIFIED, "unclassified"),
                               (CLASS_RETAIN, "retain"), (CLASS_FORGET_ONLY, "forget_only")]:
@@ -663,6 +695,7 @@ def main():
                     # ≈κ on hack-containing windows = split moments composed correctly.
                     log["gr/forget_realized_step"] = forget_realized_step
             accelerator.log(log, step=optim_step)
+            accelerator.print(json.dumps({"time": time.time(), "step": optim_step + 1, **log}))
 
             buffer = []
             optim_step += 1
@@ -695,6 +728,10 @@ def main():
     # ---- save adapter ----
     _save_adapter(accelerator, model, cur_run_path / "adapter_state_dict.pt")
     accelerator.print(f"saved adapter to {cur_run_path}")
+    if accelerator.is_main_process:  # Persistent coverage distinguishes capped runs from full five epochs.
+        (cur_run_path / "progress.json").write_text(json.dumps({"steps": optim_step,
+            "planned_steps": total_optim_steps, "complete": optim_step == total_optim_steps and not interrupted,
+            "interrupted": interrupted, "arguments": vars(args)}, indent=2))
 
     accelerator.end_training()
 

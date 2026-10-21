@@ -1,0 +1,35 @@
+[project]
+name = "graft-qwen-probe"
+version = "0.1.0"
+description = "Exploratory Qwen3-0.6B GRAFT study with a frozen trajectory probe"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "torch==2.14.1",
+    "transformers==5.20.2",
+    "trl==1.16.0",
+    "peft==0.21.2",
+    "accelerate==1.15.0",
+    "liger-kernel==0.8.5",
+    "huggingface-hub>=1.0",
+    "python-dotenv>=1.1",
+    "scikit-learn>=1.7",
+    "scipy>=1.16",
+    "matplotlib>=3.10",
+    "fastapi>=0.133",
+    "uvicorn>=0.35",
+    "requests>=2.32",
+    "pytest>=8.4",
+    "reportlab>=4.4",
+    "harbor==0.5.0",
+]
+
+[tool.uv]
+cache-dir = ".cache/uv"
+
+[tool.uv.sources]
+harbor = { path = "sft/third_party/harbor", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "sft"]
+markers = ["gpu: real CUDA kernel equivalence (no model download)"]
