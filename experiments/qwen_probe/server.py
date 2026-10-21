@@ -33,7 +33,9 @@ class Cancelled(StoppingCriteria):
 
 def serve(model_path, context_limit=16384):
     """Global: reproducible local inference. Local: locked generation, full text logs, no secrets."""
-    setup()
+    root = setup()
+    default_journal = root / "evaluation/generations" / os.environ.get("GRAFT_SERVER_INSTANCE", "standalone")
+    journal_directory = Path(os.environ.get("GRAFT_GENERATION_DIR", str(default_journal)))  # Local: also support direct CLI use.
     torch.set_num_threads(4)  # Local: avoid CPU oversubscription alongside Docker.
     tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
     model = AutoModelForCausalLM.from_pretrained(model_path, dtype=torch.bfloat16,
@@ -62,7 +64,7 @@ def serve(model_path, context_limit=16384):
                 message["content"] = "".join(part.get("text", "") for part in message["content"])
         identity = uuid.uuid4().hex
         async with lock:  # Local: no generation RNG interleaving across episodes.
-            journal = Path(os.environ["GRAFT_GENERATION_DIR"]) / f"{identity}.json"  # Local: owned by this server instance.
+            journal = journal_directory / f"{identity}.json"  # Local: owned by this server instance.
             record = {"started_at": time.time(), "messages": messages}  # Local: no request headers or credentials.
             write_json(journal, record)  # Global: preserve evidence even if the client times out before receiving it.
             stopped = threading.Event()
