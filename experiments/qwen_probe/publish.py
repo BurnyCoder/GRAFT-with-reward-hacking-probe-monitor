@@ -12,11 +12,24 @@ from .data import ARMS
 from .runtime import ROOT, event, execute, read_json, write_json
 
 
+def hub_environment():
+    """Global: use confirmed CLI authentication. Local: default token location, workspace upload caches.
+
+    Source: https://huggingface.co/docs/huggingface_hub/package_reference/environment_variables
+    HF_HOME falls back to XDG_CACHE_HOME, so both overrides must be removed for the existing login.
+    """
+    environment = os.environ.copy()  # Local: leave model/scoring processes' environment untouched.
+    for key in ("HF_HOME", "XDG_CACHE_HOME"):
+        environment.pop(key, None)  # Local: the CLI resolves its own login; no token file is read here.
+    for key, folder in (("HF_HUB_CACHE", "hub"), ("HF_XET_CACHE", "xet"), ("HF_ASSETS_CACHE", "assets")):
+        environment[key] = str(ROOT / ".cache/huggingface" / folder)  # Local: upload-related caches remain in the checkout.
+    environment["HF_HUB_DISABLE_UPDATE_CHECK"] = "1"  # Local: retain the locked CLI without external update-cache writes.
+    return environment
+
+
 def publish(root):
     """Global: user-authorized publication. Local: upload only checkpoints/configs/cards/reports."""
-    env = os.environ.copy()
-    env.pop("HF_HOME", None)  # Local: the user confirmed an existing default CLI login.
-    env.pop("HF_HUB_CACHE", None)  # Local: upload uses authentication; no model download is triggered.
+    env = hub_environment()
     cli = str(ROOT / ".venv/bin/hf")
     identity = json.loads(subprocess.check_output([cli, "auth", "whoami", "--format", "json"], env=env, text=True))
     namespace = identity.get("name") or identity.get("user")
