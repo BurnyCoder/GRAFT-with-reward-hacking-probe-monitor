@@ -34,7 +34,9 @@ def publish(root):
         progress = read_json(folder / "progress.json")
         stage = root / "hub" / arm
         stage.mkdir(parents=True, exist_ok=True)
-        for filename in ("adapter_state_dict.pt", "configuration.json", "progress.json"):
+        for filename in ("adapter_state_dict.pt", "configuration.json", "progress.json", "metrics.jsonl"):
+            if not (folder / filename).exists():
+                continue
             shutil.copy2(folder / filename, stage / filename)
         for filename in ("artifacts.json", "task_split.json"):
             shutil.copy2(ROOT / "experiments/qwen_probe" / filename, stage / filename)

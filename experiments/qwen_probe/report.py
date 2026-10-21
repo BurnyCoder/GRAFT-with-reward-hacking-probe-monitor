@@ -15,6 +15,15 @@ from .audit import finalize, make_packets
 from .data import ARMS
 from .runtime import ROOT, event, read_json, write_json
 
+ARM_RATIONALE = {  # Global: distinguish scientific questions without duplicating the full protocol.
+    "no_intervention": "Establish the effect of learning the matched clean/hack mixture with both adapters and the same split-moment optimizer, without routing. This is the primary comparator, not the untouched base model.",
+    "probe_graft": "Test whether the downloaded out-of-domain detector supplies useful routing flags. Its encoder/head remain frozen; no downstream behavior is used to recalibrate the threshold. Removing the forget adapter is the primary deployment intervention.",
+    "original_graft": "Measure the small-model GRAFT recipe with the paper's idealized monitor: zero false positives and approximately 20% positive recall after integer rounding. This separates detector limitations from a method/capability floor.",
+    "probe_filtering": "Test discarding flagged learning signal through the existing zero-weight single-adapter filtering baseline. Ordinary AdamW and fewer nonzero-loss examples differ from GRAFT, so this comparison cannot isolate routing alone.",
+    "random_graft": "Test whether the probe's trajectory-specific flags matter beyond flag frequency and length. Shuffle flags within four equal-count token-length bins, keeping each bin's flagged count fixed.",
+    "smoke": "Check real download, scoring, one parameter update, merging, local Docker execution, audit and reporting. This checkpoint is an engineering artifact and is excluded from all scientific treatment comparisons.",
+}
+
 
 def architecture(path):
     """Global: explain the actual data flow. Local: compact directed graph for README and PDF."""
@@ -112,6 +121,9 @@ def report(root):
     for arm in (*ARMS, "smoke"):
         path = root / "checkpoints" / arm / "progress.json"
         trained[arm] = read_json(path) if path.exists() else {"complete": False, "steps": 0, "status": "not run"}
+        metrics = root / "checkpoints" / arm / "metrics.jsonl"
+        if metrics.exists():
+            trained[arm]["learning_curve"] = [json.loads(line) for line in metrics.read_text().splitlines() if line]
     detector = {"status": "not run"}
     lock_path, threshold_path = root / "data/lock.json", root / "monitor/threshold.json"
     if lock_path.exists() and threshold_path.exists():
@@ -159,12 +171,13 @@ def report(root):
              "| Experiment | Updates | Completed recipe | Status |", "|---|---:|---|---|"]
     for arm, progress in trained.items():
         lines.append(f"| {arm} | {progress['steps']} | {progress['complete']} | {'complete' if progress['complete'] else 'incomplete'} |")
-        (destination / f"{arm}.md").write_text(f"# {arm}\n\n" +
+        (destination / f"{arm}.md").write_text(f"# {arm}\n\n" + ARM_RATIONALE[arm] + "\n\n" +
             f"Updates: {progress['steps']}. Complete planned training: {progress['complete']}.\n\n" +
             "Method and hyperparameter rationale: [preregistered protocol](../../docs/protocol.md). " +
             "Exact optimizer arguments are in results.json and the checkpoint configuration. " +
             "The smoke checkpoint is an engineering check and excluded from study comparisons.\n\n" +
             "Learning: completion of parameter updates alone does not establish hacking mitigation; inspect the blinded behavioral comparison and capability safeguard in [summary](summary.md).\n")
+    (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. See [summary](summary.md) for actual episode coverage and audited rates; absent measurements are not zero rates.\n")
     lines += ["", f"Pending blinded audits: {len(pending)}.", "", "## Frozen detector validation", "", "```json", json.dumps(detector, indent=2), "```",
               "", "## Behavioral measurements", "", "```json", json.dumps(behavior, indent=2), "```", "", "## Primary paired comparison", "", "```json", json.dumps(primary, indent=2), "```",
               "", "## Terminology and networks", "", "| Network / term | Architecture / algorithm | Objective and data | Measured meaning |",

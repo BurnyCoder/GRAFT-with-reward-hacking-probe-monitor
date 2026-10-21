@@ -696,6 +696,9 @@ def main():
                     log["gr/forget_realized_step"] = forget_realized_step
             accelerator.log(log, step=optim_step)
             accelerator.print(json.dumps({"time": time.time(), "step": optim_step + 1, **log}))
+            if accelerator.is_main_process:  # Pilot/reporting: retain compact learning curves beside weights.
+                with (cur_run_path / "metrics.jsonl").open("a") as metrics_file:
+                    metrics_file.write(json.dumps({"time": time.time(), "step": optim_step + 1, **log}) + "\n")
 
             buffer = []
             optim_step += 1
