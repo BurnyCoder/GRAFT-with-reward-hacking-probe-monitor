@@ -34,7 +34,7 @@ Frozen base; two width-64 MLP adapters, matched-RSLoRA alpha 32 (scale `32/sqrt(
 | Probe filtering | Same flags, upstream single-adapter zero-weight filtering; AdamW | Retain |
 | Random monitor | Shuffle probe flags within four equal-count token-length rank bins; split moments | Retain |
 
-The original monitor realizes a discretized recall at small n (report its realized value). Randomization preserves flagged counts within each bin. Filtering differs in optimizer and effective nonzero-loss sample count, so its contrast cannot isolate routing. Additional evaluations: probe both and forget-only; no-intervention retain-only. These are descriptive adapter interventions, not definitive mechanistic identification.
+The original monitor realizes a discretized recall at small n (report its realized value). Randomization preserves flagged counts within each bin. The released loader samples anchors within each unflagged pool: all GRAFT arms share the 1% rule and seed, but changing flags can change anchor identities. No intervention disables anchors along with routing. Filtering differs in optimizer and effective nonzero-loss sample count, so its contrast cannot isolate routing. Additional evaluations: probe both and forget-only; no-intervention retain-only. These are descriptive adapter interventions, not definitive mechanistic identification.
 
 ## Same-Qwen judge amendment
 
