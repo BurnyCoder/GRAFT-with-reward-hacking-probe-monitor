@@ -83,8 +83,8 @@ def main():
         from .detector.scoring import validate_monitor
         validate_monitor(root)
     elif args.phase == "train":
-        from .training import train, train_arm
-        train_arm(root, args.arm) if args.arm else train(root)
+        from .training import train
+        train(root, arm=args.arm)
     elif args.phase == "evaluate":
         from .evaluation import evaluate
         evaluate(root)

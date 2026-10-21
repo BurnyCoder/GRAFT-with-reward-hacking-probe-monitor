@@ -30,6 +30,7 @@ cache-dir = ".cache/uv"
 harbor = { path = "sft/third_party/harbor", editable = true }
 
 [tool.pytest.ini_options]
+addopts = "--basetemp=.cache/pytest-tmp" # Keep generated test files inside the repository's uv-created cache parent.
 testpaths = ["tests"]
 pythonpath = [".", "sft"]
 markers = ["gpu: real CUDA kernel equivalence (no model download)"]

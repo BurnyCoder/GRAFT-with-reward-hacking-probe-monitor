@@ -65,11 +65,13 @@ def train_arm(root, arm, *, smoke=False):
     return status["complete"]
 
 
-def train(root):
+def train(root, arm=None):
     """Global: fixed priority independent of outcomes. Local: train each registered arm once."""
-    write_pools(root)  # Local: populate existing trainer retain/forget interchange.
-    for arm in ARMS:
-        if not train_arm(root, arm):
+    if arm is not None and arm not in ARMS:
+        raise ValueError(f"Unknown training arm: {arm}")
+    write_pools(root)  # Local: also prepare the interchange for an independently requested arm.
+    for selected in ((arm,) if arm else ARMS):
+        if not train_arm(root, selected):
             break  # Local: preserve missing comparisons instead of changing their recipe.
 
 
