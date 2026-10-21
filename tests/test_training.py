@@ -47,6 +47,13 @@ def test_routing_captures_natural_gradient_before_masking():
     assert parameter.grad.item() == 0 and parameter._pre_routing_grad.item() == 4
 
 
+def test_injected_adapters_match_base_dtype():
+    """Global: real BF16 preflight compatibility. Local: new Linear modules must inherit the base dtype."""
+    model = tiny_model().to(dtype=torch.bfloat16)
+    inject_adapters(model, d_retain=4, d_forget=4)
+    assert all(parameter.dtype == torch.bfloat16 for parameter in model.parameters())
+
+
 @pytest.mark.parametrize("scales", [(1., 1.), (1., 0.), (0., 1.)])
 def test_unsharded_tied_merge_matches_adapter(tmp_path, scales):
     """Global: valid ablations. Local: merged logits equal live adapters in each mode."""

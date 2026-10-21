@@ -37,6 +37,10 @@ The pipeline emits opaque audit packets and deliberately waits for explicit judg
 - The first 13 protocol, detector, routing, accumulation, CUDA-loss and merge tests passed before real-model training. Further checks and actual run failures belong in the generated experiment reports or dated amendments.
 - The user's existing Hugging Face CLI login is reused for publication. Model and tokenization caches remain workspace-local. Credentials are never passed on command lines, put in model inputs, or copied into staged artifacts.
 
+## Dated engineering corrections during the capped run
+
+2026-10-21 22:57 UTC: the first real memory preflight failed before backward or parameter updates because newly inserted adapter Linear modules defaulted to FP32 while the base used BF16. The normal trainer already cast the combined model, but the standalone preflight exposed the more general constructor problem. A failing regression test was added, then adapter insertion was corrected to inherit the base projection's dtype/device after initialization. The common context was not reduced for this non-OOM error, and the original deadline was retained. This does not use behavioral outcomes or change the scientific protocol.
+
 ## Sources
 
 [Transformers Qwen3](https://huggingface.co/docs/transformers/model_doc/qwen3), [Qwen non-thinking settings](https://huggingface.co/Qwen/Qwen3-0.6B), [Liger Qwen3 patch](https://github.com/linkedin/Liger-Kernel), [Accelerate accumulation](https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation), [Harbor](https://github.com/harbor-framework/harbor), [uv projects](https://docs.astral.sh/uv/concepts/projects/), [probe source](https://github.com/farzingkh/reward-hacking/tree/cd4c566824c5961eaeab7b7fce7845240bd12b3d).

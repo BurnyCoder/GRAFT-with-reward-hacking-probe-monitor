@@ -163,7 +163,10 @@ def inject_adapters(
             lora_r=lora_r,
             match_rslora=match_rslora,
             use_general=use_general,
-        )
+        ).to(device=base_mlp.gate_proj.weight.device, dtype=base_mlp.gate_proj.weight.dtype)
+        # Global: inserted branches must run alongside the frozen base. Local: nn.Linear defaults
+        # to CPU/FP32, so inherit the base's placement and precision after identical initialization.
+        # Source: https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.to
 
     # Freeze everything outside the adapter branches
     for name, p in model.named_parameters():
