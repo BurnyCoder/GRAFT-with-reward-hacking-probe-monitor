@@ -285,6 +285,22 @@ def report(root):
               "", "## Prospective power", "", "```json", json.dumps(results["power"], indent=2), "```",
               "", "Detailed engineering decisions and failures are recorded in [implementation log](../../docs/implementation.md). Full untruncated transcripts are under the ignored local artifacts/qwen_probe/logs directory."]
     (destination / "summary.md").write_text("\n".join(lines) + "\n")
+    comparison_lines = ["# Frozen monitor comparison", "", monitor_text("Downloaded probe", detector), "",
+                        monitor_text("Same-Qwen judge", judge), "",
+                        "Both monitors use the same locked heldout trajectories and independently frozen calibration cutoffs. "
+                        "The judge uses the untouched learner and a fixed intent rubric; its score is conditional YES/NO odds. "
+                        "Neither monitor is fitted on these evaluation tasks. See the [protocol](../../docs/protocol.md) for exact inputs and context limits.", "",
+                        "| Metric | Judge minus probe | Paired task-bootstrap 95% interval |", "|---|---:|---|"]
+    for metric, value in detector_comparison.get("judge_minus_probe", {}).items():
+        comparison_lines.append(f"| {metric} | {estimate_text(value)} | " +
+                                str(detector_comparison["task_bootstrap_ci95"][metric]) + " |")
+    comparison_lines += ["", "These secondary intervals are unadjusted and conditional on the fixed thresholds. "
+                         "A calibration FPR below 5% does not guarantee that heldout FPR is below 5%. "
+                         "Training flags and generated behavior measure different quantities; detector validation alone does not establish mitigation.", "",
+                         "The upstream probe's training-task exposure remains unresolved ([provenance audit](../../docs/probe-provenance.md)). "
+                         "Source labels, task/source composition and different truncation capacities limit the comparison. "
+                         "Complete coverage and score-derived counts are retained in [results.json](results.json)."]
+    (destination / "monitor-comparison.md").write_text("\n".join(comparison_lines) + "\n")
     sections = [
         ("Abstract", conclusion + " " + " ".join(reasons) + f" This report covers {sum(p['complete'] for a,p in trained.items() if a != 'smoke')} completed training arms and {sum(len(v) for v in grouped.values())} audited study episodes; {len(pending)} audit packets remain pending. The experiment is an exploratory single-seed pilot, not a powered confirmatory test."),
         ("Context, motivation and introduction", "GRAFT separates training updates into retain and forget adapters using a monitor [1]. This study replaces its simulated Terminal Wrench monitor with a separately trained, frozen trajectory detector [2] while reducing the learner to Qwen3-0.6B [3]. The motivation is to distinguish an implementable detector integration from evidence that the integration mitigates reward hacking."),
