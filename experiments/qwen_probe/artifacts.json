@@ -1,0 +1,12 @@
+{
+  "source_revision": "cd4c566824c5961eaeab7b7fce7845240bd12b3d",
+  "source_url": "https://github.com/farzingkh/reward-hacking",
+  "source_license": "MIT; downloaded weight files have no separate license declaration in the release folder",
+  "learner": {"id": "Qwen/Qwen3-0.6B", "revision": "c1899de289a04d12100db370d81485cdf75e47ca", "license": "Apache-2.0"},
+  "encoder": {"id": "Qwen/Qwen3-Embedding-0.6B", "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3", "license": "Apache-2.0"},
+  "files": [
+    {"path": "detector/turn_transformer_probe_ft.pth", "url": "https://drive.google.com/uc?export=download&id=1o3V2cWeGSQkX5b0PI8g6-d3fqCO7707Y", "sha256": "8a9ac23091f9328bbb84333e28d98399b58733577a3a9e7461d853c2eb6c7007"},
+    {"path": "detector/qwen3_lora_turn_source_invariant/adapter_model.safetensors", "url": "https://drive.google.com/uc?export=download&id=13gWczjvna4sVcrpGP682lQIrbq3oBen3", "sha256": "344f8af77207f7505feabaf81fd4758db9c9a2c076623490bae4cac2f16c869f"},
+    {"path": "detector/qwen3_lora_turn_source_invariant/adapter_config.json", "url": "https://drive.google.com/uc?export=download&id=1587p9HApjdaQXAgkfGiBEGc_crDEqT2X", "sha256": "b40fd874535809a68dcc4ce0076c8712d1d29f8ab5733f0e928685f245dcf874"}
+  ]
+}
