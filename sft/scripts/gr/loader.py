@@ -142,13 +142,20 @@ def build_collator(tokenizer):
     """Padding-free collator that carries `classification` as a side-car tensor."""
     base = DataCollatorForLanguageModeling(
         pad_token_id=tokenizer.pad_token_id,
-        completion_only_loss=False,
         padding_free=True,
     )
 
     def collate(examples):
-        classifications = [ex.pop("classification") for ex in examples]
-        batch = base(examples)
+        """Keep routing separate; supply explicit labels for TRL's padding-only collator.
+
+        Source: https://github.com/huggingface/trl/pull/6037 moved mask application
+        out of collation. Retain assistant_masks too for older released TRL versions.
+        """
+        classifications = [ex["classification"] for ex in examples]  # Preserve reusable dataset records.
+        prepared = [{**ex, "labels": [token if mask else -100 for token, mask in
+                                     zip(ex["input_ids"], ex["assistant_masks"], strict=True)]}
+                    for ex in examples]  # Only assistant tokens contribute to the SFT objective.
+        batch = base(prepared)  # TRL handles flattening and first-token boundary masking.
         batch["classification"] = torch.tensor(classifications, dtype=torch.long)
         return batch
 

@@ -96,3 +96,16 @@ def test_liger_loss_and_gradients(dtype):
     torch.testing.assert_close(fused_loss, reference_loss, atol=tolerance, rtol=tolerance)
     for a, b in zip(standard.parameters(), fused.parameters()):
         torch.testing.assert_close(a.grad, b.grad, atol=tolerance, rtol=10 * tolerance)
+def test_collator_preserves_assistant_labels_and_examples():
+    """Global: TRL upgrades cannot turn prompts into targets. Local: check masks and sequence boundaries."""
+    from copy import deepcopy  # Local: detect destructive removal of routing metadata.
+    from types import SimpleNamespace  # Local: the collator needs only a padding token.
+    from scripts.gr.loader import build_collator  # Local: exercise the actual training path.
+    examples = [{"input_ids": [11, 12, 13, 14], "assistant_masks": [0, 0, 1, 1], "classification": 2},
+                {"input_ids": [21, 22, 23], "assistant_masks": [1, 0, 1], "classification": 1}]
+    original = deepcopy(examples)  # Local: datasets may reuse the same example objects.
+    batch = build_collator(SimpleNamespace(pad_token_id=0))(examples)
+    assert batch["labels"].tolist() == [[-100, -100, 13, 14, -100, -100, 23]]
+    assert batch["position_ids"].tolist() == [[0, 1, 2, 3, 0, 1, 2]]
+    assert batch["classification"].tolist() == [2, 1]
+    assert examples == original
