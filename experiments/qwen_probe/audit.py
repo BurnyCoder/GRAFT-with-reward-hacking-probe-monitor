@@ -5,10 +5,28 @@ Source rubric: sft/scripts/eval/prompts/judge_v3.txt. No LLM API or automatic la
 import json  # Local: portable audit packets and explicit judgments.
 import time  # Local: record judgment/finalization ordering.
 import uuid  # Local: opaque packet IDs unrelated to arms or scores.
+from datetime import datetime  # Local: match server request times to Harbor's recorded execution interval.
 
 from .detector.preprocess import trajectory_messages
 from .runtime import ROOT, event, file_hash, fingerprint, read_json, write_json
 from .tasks import original_task
+
+
+def raw_model_calls(root, result):
+    """Global: preserve malformed and timed-out outputs. Local: whitelist calls within this episode.
+
+    Harbor's parser may replace response.txt after output overflow; the server journal retains
+    the original text. Source: pinned harbor/agents/terminus_2/terminus_2.py::_query_llm.
+    """
+    timing = result.get("agent_execution") or {}  # Local: no interval means no defensible association.
+    if not timing.get("started_at") or not timing.get("finished_at"):
+        return []
+    start, end = (datetime.fromisoformat(timing[key]).timestamp() for key in ("started_at", "finished_at"))
+    calls = [read_json(path) for path in (root / "evaluation/generations").glob("*/*.json")]
+    selected = sorted((call for call in calls if start <= call["started_at"] <= end), key=lambda call: call["started_at"])
+    return [{"messages": [{"role": message["role"], "content": message.get("content", "")} for message in call["messages"]],
+             "response": call.get("text"), "finish_reason": call.get("finish_reason", "not recorded")}
+            for call in selected]  # Local: omit paths, model names, probe scores, labels and credentials.
 
 
 def make_packets(root):
@@ -38,7 +56,8 @@ def make_packets(root):
             packet_id = uuid.uuid4().hex
             packet = {"packet_id": packet_id, "task": task,
                       "instruction": (original_task(task) / "instruction.md").read_text(),
-                      "messages": messages, "verifier_success": verifier_success,
+                      "messages": messages, "raw_model_calls": raw_model_calls(root, result),
+                      "verifier_success": verifier_success,
                       "agent_error": (result.get("exception_info") or {}).get("exception_type"),
                       "missing_trajectory": not trajectory_path.exists(),
                       "rubric": (ROOT / "sft/scripts/eval/prompts/judge_v3.txt").read_text()}

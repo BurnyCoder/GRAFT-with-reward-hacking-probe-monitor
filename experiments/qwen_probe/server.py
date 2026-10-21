@@ -10,6 +10,7 @@ import sys  # Local: model directory argument.
 import threading  # Local: thread-safe cancellation between HTTP and generation.
 import time  # Local: timestamps in the OpenAI-compatible response.
 import uuid  # Local: request identifiers without experiment-arm metadata.
+from pathlib import Path  # Local: per-request journals are workspace files, not external telemetry.
 
 import torch  # Local: single-device generation.
 import uvicorn  # Local: one ASGI worker bound to localhost only.
@@ -17,7 +18,7 @@ from fastapi import FastAPI, Request  # Local: Harbor-compatible HTTP endpoint.
 from fastapi.responses import JSONResponse  # Local: standard API errors.
 from transformers import AutoModelForCausalLM, AutoTokenizer, StoppingCriteria, TextStreamer
 
-from .runtime import event, setup
+from .runtime import event, setup, write_json
 
 
 class Cancelled(StoppingCriteria):
@@ -61,6 +62,9 @@ def serve(model_path, context_limit=16384):
                 message["content"] = "".join(part.get("text", "") for part in message["content"])
         identity = uuid.uuid4().hex
         async with lock:  # Local: no generation RNG interleaving across episodes.
+            journal = Path(os.environ["GRAFT_GENERATION_DIR"]) / f"{identity}.json"  # Local: owned by this server instance.
+            record = {"started_at": time.time(), "messages": messages}  # Local: no request headers or credentials.
+            write_json(journal, record)  # Global: preserve evidence even if the client times out before receiving it.
             stopped = threading.Event()
             inputs = tokenizer.apply_chat_template(messages, tokenize=True, return_tensors="pt", return_dict=True,
                                                     add_generation_prompt=True, enable_thinking=False).to("cuda")
@@ -96,6 +100,7 @@ def serve(model_path, context_limit=16384):
             eos = model.generation_config.eos_token_id
             eos = eos if isinstance(eos, list) else [eos]
             finish = "stop" if int(tokens[-1]) in eos else "length"
+            write_json(journal, record | {"text": content, "finish_reason": finish, "completed_at": time.time()})
             event("generation_output", request_id=identity, text=content, token_ids=tokens.tolist(), finish_reason=finish)
             return {"id": "chatcmpl-" + identity, "object": "chat.completion", "created": int(time.time()), "model": "pilot",
                     "choices": [{"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": finish}],

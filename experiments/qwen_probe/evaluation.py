@@ -27,7 +27,8 @@ def model_server(model_path, root):
     """Global: one GPU worker. Local: never call the upstream broad pkill shutdown script."""
     port = int(os.environ.get("GRAFT_SERVER_PORT", "8765"))
     instance = uuid.uuid4().hex  # Local: readiness must prove process ownership, not just an open port.
-    server_env = os.environ | {"GRAFT_SERVER_INSTANCE": instance}
+    server_env = os.environ | {"GRAFT_SERVER_INSTANCE": instance,
+                              "GRAFT_GENERATION_DIR": str(root / "evaluation/generations" / instance)}
     process = subprocess.Popen([sys.executable, "-u", "-m", "experiments.qwen_probe.server", str(model_path)],
                                cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                                bufsize=1, start_new_session=True, env=server_env)

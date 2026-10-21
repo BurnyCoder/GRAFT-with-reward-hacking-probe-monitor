@@ -30,6 +30,8 @@ The persistent `budget.json` deadline cannot be reset by rerunning the command. 
 
 The pipeline emits opaque audit packets and deliberately waits for explicit judgments. It does not substitute probe flags, reward scores or missing files for intent labels. The same implementing Codex assistant may audit; this is a limitation relative to independent human blinding. All packet fingerprints and judgments are frozen before a treatment mapping is exported.
 
+Audit packets also contain the server's original messages and raw responses, selected by the recorded episode execution interval. This includes malformed or truncated output that Harbor may omit from its structured trajectory or replace in `response.txt`. The journal is written before generation and updated on completion; absent output remains explicit. Only message text, response text and completion status are copied into blinded packets.
+
 ## Setup issues encountered before experiments
 
 - `uv add --editable` initially attempted to nest Harbor's workspace inside the root workspace. Nested workspaces are unsupported. A path dependency in `[tool.uv.sources]` fixes this without modifying the pinned Harbor project.
