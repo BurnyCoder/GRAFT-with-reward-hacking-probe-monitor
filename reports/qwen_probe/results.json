@@ -191,5 +191,11 @@
       }
     ],
     "assumptions": "Two-sided normal approximations; paired discordance sensitivity; seed grid assumes independent seeds and conditional task noise, q=.2. Same tasks across seeds may correlate; unknown seed SD is not estimated from this pilot. p1=0 is a boundary approximation."
+  },
+  "coverage": {
+    "planned_study_episodes": 144,
+    "audited_study_episodes": 0,
+    "pending_audit_packets": 0,
+    "note": "Unstarted or missing-result episodes are absent, never treated as nonhacking."
   }
 }

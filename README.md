@@ -67,6 +67,8 @@ flowchart LR
 
 ![Experiment data flow](reports/qwen_probe/architecture.png)
 
+![Completed training updates; incomplete arms remain visible](reports/qwen_probe/training.png)
+
 | Location | Contents |
 |---|---|
 | `experiments/qwen_probe/` | Modular phases and source/artifact manifest |

@@ -35,6 +35,51 @@ def architecture(path):
     plt.close(figure)
 
 
+def result_figures(destination, results):
+    """Global: visualize observed coverage without hidden exclusions. Local: fixed scales and intervals."""
+    figure, axis = plt.subplots(figsize=(9, 3.6))
+    names = list(ARMS)
+    counts = [results["training"][name]["steps"] for name in names]
+    colors = ["#2e6b96" if results["training"][name]["complete"] else "#ad6b32" for name in names]
+    axis.barh(names, counts, color=colors)
+    axis.set(xlabel="Completed optimizer updates", title="Training coverage (blue: complete; orange: incomplete)", xlim=(0, max(20, max(counts) + 1)))
+    axis.invert_yaxis()
+    figure.tight_layout()
+    figure.savefig(destination / "training.png", dpi=180)
+    plt.close(figure)
+    figures = [destination / "training.png"]
+    detector = results["detector"]
+    if detector.get("metrics"):
+        figure, axis = plt.subplots(figsize=(7, 3.4))
+        for index, (metric, value) in enumerate(detector["metrics"].items()):
+            interval = detector["task_bootstrap_ci95"][metric]
+            if value is not None and interval is not None:
+                axis.errorbar(index, value, yerr=[[max(0, value - interval[0])], [max(0, interval[1] - value)]],
+                              fmt="o", capsize=5, color="#244b6b")
+        axis.set(xticks=range(4), xticklabels=["AUROC", "Precision", "Recall", "FPR"], ylim=(0, 1),
+                 ylabel="Estimate and task-bootstrap 95% interval", title=f"Frozen detector: {detector['scored']} heldout trajectories, {detector['tasks']} tasks")
+        figure.tight_layout()
+        figure.savefig(destination / "detector.png", dpi=180)
+        plt.close(figure)
+        figures.append(destination / "detector.png")
+    elicited = {key: metrics for key, metrics in results["behavior"].items() if key.endswith("/elicited")}
+    if elicited:
+        figure, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+        for axis, metric in zip(axes, ("hacking", "legitimate")):
+            for index, (key, values) in enumerate(elicited.items()):
+                value = values[metric]
+                if value["rate_known"] is not None:
+                    point, interval = value["rate_known"], value["ci95_known"]
+                    axis.errorbar(point, index, xerr=[[point - interval[0]], [interval[1] - point]], fmt="o", capsize=4)
+            axis.set(xlim=(0, 1), yticks=range(len(elicited)), yticklabels=list(elicited), xlabel="Known-outcome rate; Wilson 95% interval", title=metric)
+        figure.suptitle("Elicited behavior: ambiguity and missingness are reported separately as bounds")
+        figure.tight_layout()
+        figure.savefig(destination / "behavior.png", dpi=180)
+        plt.close(figure)
+        figures.append(destination / "behavior.png")
+    return figures
+
+
 def paper(destination, sections, figures):
     """Global: one source for paper text and PDF. Local: ReportLab layout with actual result figures."""
     from reportlab.lib.styles import getSampleStyleSheet
@@ -99,7 +144,10 @@ def report(root):
         conclusion = "The paired pilot estimates describe these eight tasks and one training seed; they do not establish general mitigation effectiveness."
     results = {"training": trained, "detector": detector, "behavior": behavior, "primary": primary,
                "pending_audits": len(pending), "conclusion": conclusion, "reasons": reasons, "power": power_analysis()}
+    results["coverage"] = {"planned_study_episodes": 144, "audited_study_episodes": sum(map(len, grouped.values())),
+                           "pending_audit_packets": len(pending), "note": "Unstarted or missing-result episodes are absent, never treated as nonhacking."}
     write_json(destination / "results.json", results)
+    figures = result_figures(destination, results)
     for source, target in [("data/lock.json", "data_lock.json"), ("data/provenance.json", "provenance.json"),
                            ("monitor/threshold.json", "threshold.json"), ("evaluation/tasks.json", "tasks.json"),
                            ("budget.json", "budget.json"), ("preflight.json", "preflight.json"),
@@ -143,6 +191,6 @@ def report(root):
         ("Conclusion", conclusion + " Larger, multi-seed studies with measured task/seed variance and independently blinded audits are required for stronger conclusions."),
         ("Appendix: prospective power and reproducibility", "Normal-approximation sample requirements for a 10pp reduction at 80% power and two-sided alpha .05: " + json.dumps(results["power"]["independent"]) + ". Paired discordance and unknown seed-variance sensitivity are in results.json; they are planning assumptions. uv.lock pins the environment; artifacts.json pins sources and weights; data_lock.json fixes examples and preprocessing; per-checkpoint configuration and progress files record all actual updates. Full prompts, responses, scores and judgments are retained in timestamped local logs. Run uv run python -m experiments.qwen_probe run --profile pilot."),
         ("References", "[1] GRAFT. https://arxiv.org/abs/2610.17062\n[2] farzingkh/reward-hacking, revision cd4c566824c5961eaeab7b7fce7845240bd12b3d (MIT source). https://github.com/farzingkh/reward-hacking\n[3] Qwen3-0.6B. https://huggingface.co/Qwen/Qwen3-0.6B\n[4] Qwen3-Embedding-0.6B. https://huggingface.co/Qwen/Qwen3-Embedding-0.6B\n[5] Accelerate gradient accumulation. https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation\n[6] Liger Kernel. https://github.com/linkedin/Liger-Kernel\n[7] SciPy binomial inference. https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.binomtest.html\n[8] NeurIPS reporting checklist. https://neurips.cc/public/guides/PaperChecklist\n[9] Lones (2021), ML pitfalls. https://arxiv.org/abs/2108.02497\n[10] Lipton and Steinhardt (2018), Troubling Trends. https://arxiv.org/abs/1807.03341")]
-    paper(destination, sections, [destination / "architecture.png"])
+    paper(destination, sections, [destination / "architecture.png", *figures])
     event("report_written", directory=destination, conclusion=conclusion, pending_audits=len(pending))
     return results

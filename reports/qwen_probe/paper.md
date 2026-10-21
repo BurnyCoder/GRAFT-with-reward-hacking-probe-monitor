@@ -60,3 +60,5 @@ Normal-approximation sample requirements for a 10pp reduction at 80% power and t
 [10] Lipton and Steinhardt (2018), Troubling Trends. https://arxiv.org/abs/1807.03341
 
 ![architecture](architecture.png)
+
+![training](training.png)
