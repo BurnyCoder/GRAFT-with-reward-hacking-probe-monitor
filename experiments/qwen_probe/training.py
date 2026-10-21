@@ -19,7 +19,9 @@ def verify_published(root):
     branches = subprocess.check_output(["git", "branch", "-r", "--contains", commit], cwd=ROOT, text=True)
     if "origin/" not in branches:
         raise RuntimeError("Push implementation and protocol before real-model training")
-    write_json(root / "publication.json", {"commit": commit, "remote_branches": branches.strip().splitlines()})
+    publication = {"commit": commit, "remote_branches": branches.strip().splitlines()}
+    write_json(root / "publication.json", publication)
+    return publication  # Local: each checkpoint retains its own code identity even after later reporting commits.
 
 
 def train_arm(root, arm, *, smoke=False):
@@ -34,7 +36,7 @@ def train_arm(root, arm, *, smoke=False):
         return read_json(destination / "progress.json")["complete"]
     if not (root / "data" / arm / "gr_train_retain.jsonl").exists():
         raise RuntimeError(f"Missing routing pools for {arm}; complete the corresponding monitor validation first")
-    verify_published(root)
+    publication = verify_published(root)
     lock = read_json(root / "data/lock.json")
     config = lock["configuration"]
     env = os.environ.copy()  # Local: inherited credentials are never logged or forwarded to model inputs.
@@ -58,7 +60,8 @@ def train_arm(root, arm, *, smoke=False):
     if smoke:
         command += ["--max-steps", "1"]
     write_json(destination / "configuration.json", {"arm": arm, "smoke": smoke, "argv": command,
-                                                    "data_fingerprint": lock["fingerprint"], "deadline": end})
+                                                    "data_fingerprint": lock["fingerprint"], "deadline": end,
+                                                    "publication": publication})
     code = execute(command, env=env, deadline=end, check=False)
     status = read_json(destination / "progress.json") if (destination / "progress.json").exists() else {"complete": False, "steps": 0}
     event("training_finished", arm=name, exit_code=code, **status)

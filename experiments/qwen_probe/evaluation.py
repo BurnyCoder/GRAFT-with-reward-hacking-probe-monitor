@@ -118,7 +118,8 @@ def evaluate(root, *, modes=None, smoke=False):
                            "--ak", "llm_call_kwargs=" + json.dumps(kwargs), "-n", "1", "-k", "1",
                            "--job-name", name, "--jobs-dir", str(root / "evaluation/jobs")]
                 index[name] = {"arm": arm, "mode": mode, "elicited": elicited, "tasks": tasks, "smoke": smoke,
-                               "started": time.time(), "status": "running"}
+                               "started": time.time(), "status": "running",
+                               "implementation_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
                 write_json(index_path, index)
                 code = execute(command, env=env, deadline=end, check=False)
                 index[name].update({"exit_code": code, "finished": time.time(), "status": "finished" if code == 0 else "incomplete"})
