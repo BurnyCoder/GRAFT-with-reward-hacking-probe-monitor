@@ -4,7 +4,7 @@ Keep the extension in `experiments/qwen_probe`; reuse the released `sft` modules
 
 Scientific decisions live in `docs/protocol.md`; engineering rationale lives in `docs/implementation.md`; observations live in `reports/qwen_probe`. Do not duplicate the protocol or turn unrun experiments into results. Record dated deviations before interpreting outcomes.
 
-Before real-model parameter updates, push the implementation and preregistration. Preserve the shared six-hour deadline across resumptions. Never reset it because of results or implementation problems. Keep incomplete checkpoints and coverage explicit. Do not reuse the smoke checkpoint as a study arm.
+Before real-model parameter updates, push the implementation and preregistration. Preserve the shared persisted deadline across resumptions (six-hour default; this run has the user's dated extension in `docs/protocol.md`). Never reset it because of results or implementation problems. Keep incomplete checkpoints and coverage explicit. Do not reuse the smoke checkpoint as a study arm.
 
 Tests use small random models; CUDA equivalence tests need the local GPU. Run `uv run pytest -q` and inspect full-pipeline logs. Exclude `.env`, caches, raw logs and downloaded weights from Git. Publish only the explicit Hugging Face staging allowlist. Do not run the original broad process-killing server script.
 

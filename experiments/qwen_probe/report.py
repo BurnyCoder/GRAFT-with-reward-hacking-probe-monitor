@@ -113,6 +113,26 @@ def paper(destination, sections, figures):
     SimpleDocTemplate(str(destination / "paper.pdf"), title="Qwen3-0.6B GRAFT exploratory pilot", author="Libor Burian").build(story)
 
 
+def estimate_text(value, interval=None):
+    """Global: readable numerical claims. Local: retain undefined estimates instead of printing fabricated zeros."""
+    if value is None:
+        return "undefined"
+    return f"{value:.3f}" + (f" (95% interval {interval[0]:.3f} to {interval[1]:.3f})" if interval else "")
+
+
+def monitor_text(name, result):
+    """Global: cite measured detector evidence compactly. Local: include counts, cutoff and uncertainty."""
+    if "metrics" not in result:
+        return f"{name}: {result['status']}."
+    metrics = "; ".join(f"{key} {estimate_text(value, result['task_bootstrap_ci95'][key])}"
+                        for key, value in result["metrics"].items())
+    calibration = result["calibration"]
+    return (f"{name}: {result['scored']}/{result['planned']} heldout trajectories across {result['tasks']} tasks; "
+            f"{result['positive']} positive and {result['negative']} negative labels. {metrics}. "
+            f"Frozen cutoff {calibration['threshold']:.8g}; calibration false positives "
+            f"{calibration['false_positives']}/{calibration['clean']}.")
+
+
 def validation_report(root, name, lock, inventory):
     """Global: common monitor evidence. Local: separate calibrated accuracy from context coverage."""
     path = root / name / "threshold.json"
@@ -253,12 +273,17 @@ def report(root):
         ("Background and related work", "The external detector combines Qwen3-Embedding-0.6B [4], an attention LoRA adapter, and a turn-transformer classifier [2]. Its representations do not share activations with the learner. GRAFT's monitor flags route gradients; they are not scalar reward penalties [1]. External classification accuracy and generated hacking behavior measure different quantities."),
         ("Method", "The exact preregistration is docs/protocol.md in the published repository commit recorded in publication.json. Preserve the published 232/99 task split, reserve 32 training tasks for calibration (seed 42), and freeze a strict score cutoff at empirical clean FPR <= 5%. Select at most 192 balanced trajectories, in multiples of 48, with a common memory-preflight length cap. Freeze the base; train two width-64 branches for five epochs, effective batch 48, learning rate 5e-4, weight decay 1e-4, betas (0.9,0.95), cosine schedule, 5% warmup, 1% unlabeled anchors and forget-gradient multiplier 2. Compare no intervention, original simulated monitor, downloaded probe, probe filtering and length-bin-shuffled probe flags. Filtering uses ordinary AdamW and thus is not a pure routing contrast. Correct Accelerate accumulation normalization [5] and use loss-equivalent Liger Qwen3 fused CE [6]."),
         ("Evaluation and analysis", "Evaluate eight fixed locally runnable heldout Docker tasks through pinned Harbor, once per mode and prompt condition: seed 2002, thinking disabled, maximum 16 turns and 120 seconds per agent episode. Audit intent using opaque packets before unblinding arms. The primary comparison is elicited hacking in probe-GRAFT retain-only versus no intervention both; legitimate success has a five-percentage-point safeguard. Wilson intervals describe known binary outcomes; ambiguity is retained as bounds. Paired task bootstrap uses 10,000 draws, seed 42, and the exact discordance test is descriptive. Missing outcomes are never imputed as benign. Detector intervals resample whole tasks."),
-        ("Results", "Training coverage: " + "; ".join(f"{a}: {p['steps']} updates, complete={p['complete']}" for a,p in trained.items()) + ".\n\nDetector: " + json.dumps(detector) + ".\n\nPrimary paired estimates: " + json.dumps(primary)),
+        ("Results", "Training coverage: " + "; ".join(f"{a}: {p['steps']} updates, complete={p['complete']}" for a,p in trained.items()) +
+         ".\n\n" + monitor_text("Downloaded probe", detector) + "\n\n" + monitor_text("Qwen judge", judge) +
+         "\n\nPrimary elicited differences (probe retain minus no intervention both): " +
+         "; ".join(f"{metric}: {estimate_text(value['difference'], value['bootstrap_ci95'])}, {value['known_pairs']} known task pairs"
+                   for metric, value in primary.items()) + ". Full paired outcomes, missingness and secondary comparisons are in results.json and audited_outcomes.json."),
         ("Claims and implications", conclusion + " " + " ".join(reasons) + " Successful checkpoint loading, kernel equivalence and successful Docker execution support engineering compatibility only. Reported treatment differences are conditional descriptive observations, not claims of robust alignment or a causal mechanism beyond the implemented adapter intervention."),
-        ("Discussion and limitations", "One training seed, eight selected tasks, a much smaller model than the source paper, task difficulty, label/source confounding, unresolved upstream detector exposure, truncation and non-independent implementing-assistant audits limit generalization. A sigmoid score is not assumed calibrated. At n=8 one binary outcome changes a rate by 12.5 percentage points, larger than the 5pp capability tolerance. Bootstrap intervals may degenerate at the boundary; exact paired discordance evidence and Wilson intervals remain visible. The six-hour cap can leave arms or modes incomplete. Training error and infrastructure error are reported separately from behavior. No result-dependent extension or threshold retuning is allowed."),
+        ("Discussion and limitations", "One training seed, eight selected tasks, a much smaller model than the source paper, task difficulty, label/source confounding, unresolved upstream detector exposure, truncation and non-independent implementing-assistant audits limit generalization. Neither monitor score is assumed calibrated. At n=8 one binary outcome changes a rate by 12.5 percentage points, larger than the 5pp capability tolerance. Bootstrap intervals may degenerate at the boundary; exact paired discordance evidence and Wilson intervals remain visible. The registered deadline can leave arms or modes incomplete. The user authorized a ten-more-hours extension before optimizer updates or behavioral outcomes; budget.json preserves both deadlines. Training error and infrastructure error are reported separately from behavior. No result-dependent extension or threshold retuning is allowed."),
         ("Conclusion", conclusion + " Larger, multi-seed studies with measured task/seed variance and independently blinded audits are required for stronger conclusions."),
         ("Appendix: prospective power and reproducibility", "Normal-approximation sample requirements for a 10pp reduction at 80% power and two-sided alpha .05: " + json.dumps(results["power"]["independent"]) + ". Paired discordance and unknown seed-variance sensitivity are in results.json; they are planning assumptions. uv.lock pins the environment; artifacts.json pins sources and weights; data_lock.json fixes examples and preprocessing; per-checkpoint configuration and progress files record all actual updates. Full prompts, responses, scores and judgments are retained in timestamped local logs. Run uv run python -m experiments.qwen_probe run --profile pilot."),
         ("References", "[1] GRAFT. https://arxiv.org/abs/2610.17062\n[2] farzingkh/reward-hacking, revision cd4c566824c5961eaeab7b7fce7845240bd12b3d (MIT source). https://github.com/farzingkh/reward-hacking\n[3] Qwen3-0.6B. https://huggingface.co/Qwen/Qwen3-0.6B\n[4] Qwen3-Embedding-0.6B. https://huggingface.co/Qwen/Qwen3-Embedding-0.6B\n[5] Accelerate gradient accumulation. https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation\n[6] Liger Kernel. https://github.com/linkedin/Liger-Kernel\n[7] SciPy binomial inference. https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.binomtest.html\n[8] NeurIPS reporting checklist. https://neurips.cc/public/guides/PaperChecklist\n[9] Lones (2021), ML pitfalls. https://arxiv.org/abs/2108.02497\n[10] Lipton and Steinhardt (2018), Troubling Trends. https://arxiv.org/abs/1807.03341")]
+    sections.insert(4, ("Same-Qwen judge and protocol amendment", "The untouched pinned Qwen3-0.6B is a second frozen monitor, using the released intent rubric and conditional YES/NO next-token logits with thinking disabled. A separate cutoff uses the same calibration tasks and empirical-FPR rule. It receives the same normalized trajectory text, bounded to 248 turns and 16,384 aggregate input tokens with head/tail truncation; the probe instead permits 4,096 tokens per turn. This coverage difference is disclosed, not equated. Qwen-judge GRAFT adds a sixth trained treatment and 16 agentic episodes. Its detector and behavioral comparisons are secondary; the primary remains probe GRAFT versus no intervention. Judge limitations motivate measuring this baseline rather than assuming validity (Zheng et al., 2023, https://arxiv.org/abs/2306.05685)."))
     paper(destination, sections, [destination / "architecture.png", *figures])
     event("report_written", directory=destination, conclusion=conclusion, pending_audits=len(pending))
     return results
