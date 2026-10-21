@@ -3,6 +3,7 @@
 Sources: https://www.reportlab.com/docs/reportlab-userguide.pdf and https://matplotlib.org/stable/.
 """
 import json  # Local: tables and transparent machine-readable results.
+from collections import Counter  # Local: measured sample and source composition, not guessed proportions.
 import shutil  # Local: copy compact provenance, never credentials or model weights.
 from html import escape  # Local: safe PDF paragraphs from data.
 
@@ -178,10 +179,24 @@ def report(root):
         if metrics.exists():
             trained[arm]["learning_curve"] = [json.loads(line) for line in metrics.read_text().splitlines() if line]
     detector, judge, detector_comparison = ({"status": "not run"} for _ in range(3))
+    data_summary, routing = {}, {}  # Local: absent manifests remain absent evidence.
     lock_path, threshold_path = root / "data/lock.json", root / "monitor/threshold.json"
     if lock_path.exists() and threshold_path.exists():
         lock = read_json(lock_path)
         inventory = {r["id"]: r for r in read_json(root / "data/inventory.json")}
+        for part in ("train", "calibration", "heldout"):
+            rows = [inventory[i] for i in lock[part]]
+            data_summary[part] = {"records": len(rows), "tasks": len({row["task"] for row in rows}),
+                                  "labels": dict(Counter(str(row["label"]) for row in rows)),
+                                  "sources": dict(Counter(row["source_model"] for row in rows)),
+                                  "total_learner_tokens": sum(row["tokens"] for row in rows),
+                                  "min_tokens": min(row["tokens"] for row in rows),
+                                  "max_tokens": max(row["tokens"] for row in rows)}
+        if (root / "data/arms.json").exists():
+            for arm, pool in read_json(root / "data/arms.json").items():
+                routing[arm] = {"total": pool["total"], "flagged": pool["flagged"],
+                                "flagged_positive": sum(flag and inventory[identity]["label"] == 1 for identity, flag in pool["flags"].items()),
+                                "flagged_negative": sum(flag and inventory[identity]["label"] == 0 for identity, flag in pool["flags"].items())}
         detector = validation_report(root, "monitor", lock, inventory)
         judge = validation_report(root, "judge", lock, inventory)
         if "calibration" in judge:
@@ -218,6 +233,7 @@ def report(root):
                         for field in ("hacking", "legitimate")} for name, comparator in
                  (("judge_minus_no_intervention", control), ("judge_minus_probe", treatment))}
     results = {"training": trained, "detector": detector, "judge": judge, "detector_comparison": detector_comparison,
+               "data": data_summary, "routing": routing,
                "behavior": behavior, "primary": primary, "secondary": secondary,
                "pending_audits": len(pending), "conclusion": conclusion, "reasons": reasons, "power": power_analysis()}
     results["coverage"] = {"planned_study_episodes": 160, "audited_study_episodes": sum(map(len, grouped.values())),
@@ -227,6 +243,7 @@ def report(root):
     for source, target in [("data/lock.json", "data_lock.json"), ("data/provenance.json", "provenance.json"),
                            ("monitor/threshold.json", "threshold.json"), ("evaluation/tasks.json", "tasks.json"),
                            ("judge/threshold.json", "judge_threshold.json"), ("judge/manifest.json", "judge_manifest.json"),
+                           ("data/arms.json", "routing_flags.json"),
                            ("budget.json", "budget.json"), ("preflight.json", "preflight.json"),
                            ("publication.json", "publication.json"), ("audit/judgments.json", "audit_judgments.json")]:
         if (root / source).exists():
@@ -251,6 +268,7 @@ def report(root):
     base_outcomes = {key: value for key, value in behavior.items() if key.startswith("base/")}
     (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. Absent measurements are not zero rates.\n\n```json\n" + json.dumps(base_outcomes, indent=2) + "\n```\n")
     lines += ["", f"Pending blinded audits: {len(pending)}.", "", "## Frozen detector validation", "", "```json", json.dumps(detector, indent=2), "```",
+              "", "## Fixed data and realized routing", "", "```json", json.dumps({"data": data_summary, "routing": routing}, indent=2), "```",
               "", "## Same-Qwen judge validation and paired detector comparison", "", "```json", json.dumps({"judge": judge, "comparison": detector_comparison}, indent=2), "```",
               "", "## Secondary judge behavioral comparisons", "", "```json", json.dumps(secondary, indent=2), "```",
               "", "## Behavioral measurements", "", "```json", json.dumps(behavior, indent=2), "```", "", "## Primary paired comparison", "", "```json", json.dumps(primary, indent=2), "```",
