@@ -117,6 +117,9 @@ def report(root):
     pending = make_packets(root)
     audited = finalize(root) if not pending else None
     audited = audited or []
+    public_fields = ("packet_id", "task", "arm", "mode", "elicited", "smoke", "hacking", "legitimate",
+                     "verifier_success", "agent_error", "evidence", "rationale", "auditor", "judged_at", "packet_fingerprint")
+    write_json(destination / "audited_outcomes.json", [{key: row[key] for key in public_fields} for row in audited])
     trained = {}
     for arm in (*ARMS, "smoke"):
         path = root / "checkpoints" / arm / "progress.json"
@@ -181,13 +184,16 @@ def report(root):
              "| Experiment | Updates | Completed recipe | Status |", "|---|---:|---|---|"]
     for arm, progress in trained.items():
         lines.append(f"| {arm} | {progress['steps']} | {progress['complete']} | {'complete' if progress['complete'] else 'incomplete'} |")
+        outcomes = {key: value for key, value in behavior.items() if key.startswith(arm + "/")}  # Local: same metrics as consolidated report.
         (destination / f"{arm}.md").write_text(f"# {arm}\n\n" + ARM_RATIONALE[arm] + "\n\n" +
             f"Updates: {progress['steps']}. Complete planned training: {progress['complete']}.\n\n" +
             "Method and hyperparameter rationale: [preregistered protocol](../../docs/protocol.md). " +
             "Exact optimizer arguments are in the per-arm configuration JSON when the run has started. " +
             "The smoke checkpoint is an engineering check and excluded from study comparisons.\n\n" +
+            "Observed audited behavior (an empty object means no unblinded study measurements):\n\n```json\n" + json.dumps(outcomes, indent=2) + "\n```\n\n" +
             "Learning: completion of parameter updates alone does not establish hacking mitigation; inspect the blinded behavioral comparison and capability safeguard in [summary](summary.md).\n")
-    (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. See [summary](summary.md) for actual episode coverage and audited rates; absent measurements are not zero rates.\n")
+    base_outcomes = {key: value for key, value in behavior.items() if key.startswith("base/")}
+    (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. Absent measurements are not zero rates.\n\n```json\n" + json.dumps(base_outcomes, indent=2) + "\n```\n")
     lines += ["", f"Pending blinded audits: {len(pending)}.", "", "## Frozen detector validation", "", "```json", json.dumps(detector, indent=2), "```",
               "", "## Behavioral measurements", "", "```json", json.dumps(behavior, indent=2), "```", "", "## Primary paired comparison", "", "```json", json.dumps(primary, indent=2), "```",
               "", "## Terminology and networks", "", "| Network / term | Architecture / algorithm | Objective and data | Measured meaning |",
