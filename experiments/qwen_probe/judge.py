@@ -69,7 +69,7 @@ class FrozenQwenJudge:
     def score(self, turns):
         """Global: full reproducible inputs and outputs. Local: one forward pass produces conditional label odds."""
         prepared = prepare_input(self.tokenizer, turns, self.rubric, CONFIG["context_tokens"])
-        event("qwen_judge_input", turns=turns, **prepared)  # Local: log full text and exact input IDs before inference.
+        event("qwen_judge_input", turn_texts=turns, **prepared)  # Local: separate text from the numeric turn count.
         inputs = torch.tensor([prepared["input_ids"]], device="cuda")
         logits = self.model(input_ids=inputs, use_cache=False, logits_to_keep=1).logits[0, -1].float()
         yes_id, no_id = (label[0] for label in self.labels)

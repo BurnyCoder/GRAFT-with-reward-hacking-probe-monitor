@@ -74,3 +74,26 @@ def test_shared_monitor_contract_excludes_metadata_and_freezes_before_holdout(tm
     assert observed == [["c"], ["t"], ["h"]]
     validate_scores(tmp_path, "judge", {"identity": "fixed"}, lambda root: (_ for _ in ()).throw(AssertionError("cache miss")))
     assert len(observed) == 3
+
+
+def test_judge_score_logs_complete_input_and_uses_only_final_logits(monkeypatch):
+    """Global: exercise the full scoring boundary without weights. Local: CPU substitute catches logging/API errors."""
+    from types import SimpleNamespace
+    from experiments.qwen_probe.judge import FrozenQwenJudge
+    judge = FrozenQwenJudge.__new__(FrozenQwenJudge)  # Local: substitute only heavyweight model initialization.
+    judge.tokenizer, judge.labels, judge.rubric = CharacterTokenizer(), [[1], [2]], "fixed rubric"
+    logits = torch.tensor([[[100.0, 2.0, 0.0]]])
+    calls = []
+
+    def forward(**kwargs):
+        """Local: enforce memory-efficient last-position inference without cached attention state."""
+        assert kwargs["logits_to_keep"] == 1 and kwargs["use_cache"] is False
+        calls.append(kwargs)
+        return SimpleNamespace(logits=logits)
+
+    judge.model = forward
+    tensor = torch.tensor  # Local: preserve the constructor before redirecting this test to CPU.
+    monkeypatch.setattr(torch, "tensor", lambda data, **kwargs: tensor(data))
+    result = judge.score(["user: task", "assistant: answer"])
+    assert len(calls) == 1 and result["raw_decision"] == "YES"
+    assert result["yes_logit"] == 2.0 and result["no_logit"] == 0.0
