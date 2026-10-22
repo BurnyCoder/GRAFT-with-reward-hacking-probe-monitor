@@ -61,7 +61,7 @@ def run(root):
 def main():
     """Global: reproducible CLI. Local: parse once, then dispatch a named modular phase."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("phase", choices=["run", "download", "prepare", "validate-monitor", "validate-judge", "train", "evaluate", "smoke", "audit", "report", "publish"])
+    parser.add_argument("phase", choices=["run", "download", "prepare", "validate-monitor", "validate-judge", "train", "evaluate", "recover-setup", "smoke", "audit", "report", "publish"])
     parser.add_argument("--profile", choices=["pilot"], default="pilot")
     parser.add_argument("--arm", help="Run one registered training arm")
     audit_action = parser.add_mutually_exclusive_group()  # Local: viewing evidence cannot also record a judgment.
@@ -94,6 +94,11 @@ def main():
     elif args.phase == "evaluate":
         from .evaluation import evaluate
         evaluate(root)
+    elif args.phase == "recover-setup":
+        from .recovery import recover_setup_failures
+        from .tasks import ensure_task_images
+        ensure_task_images(root)  # Local: require the original environments before making any job eligible again.
+        recover_setup_failures(root)
     elif args.phase == "smoke":
         smoke(root)
     elif args.phase == "audit":

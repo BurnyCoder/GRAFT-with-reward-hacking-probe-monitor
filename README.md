@@ -19,7 +19,7 @@ uv run python -m experiments.qwen_probe run --profile pilot
 
 Prerequisites: Linux/WSL, Python 3.12, [uv](https://docs.astral.sh/uv/getting-started/installation/), working Docker, a BF16-capable NVIDIA GPU with approximately 8 GB VRAM and a CUDA-13-compatible driver. This run uses an RTX 5070 Laptop GPU (8,151 MiB reported VRAM), driver 591.74, and BF16 with SDPA attention; [PyTorch exposes a BF16 support check](https://docs.pytorch.org/docs/2.14/generated/torch.cuda.is_bf16_supported.html). Allow substantial disk space for the 7 GB task checkout, two model snapshots, CUDA packages, Docker layers and logs; 40 GB free is a practical starting allowance, not a measured maximum. The default uses one GPU worker and one episode at a time. No paid LLM API is needed. All generated files and model caches stay under the checkout; `.env` and artifacts are ignored by Git.
 
-`run` downloads and verifies inputs, prebuilds deterministic Docker tasks, fixes the dataset after a memory check, scores with the frozen probe and Qwen judge in separate processes, unloads them, and runs a one-update real smoke test. It then **stops for the smoke audit**. After judgments are recorded, rerun the same command: the persistent deadline is retained. The primary two trained arms and their behavioral evaluation run before secondary controls. Each completed phase is reusable; failed/incomplete trials are recorded rather than selectively rerun. A resumed interrupted optimizer run is not silently restarted.
+`run` downloads and verifies inputs, prebuilds deterministic Docker tasks, fixes the dataset after a memory check, scores with the frozen probe and Qwen judge in separate processes, unloads them, and runs a one-update real smoke test. It then **stops for the smoke audit**. After judgments are recorded, rerun the same command: the persistent deadline is retained. The primary two trained arms and their behavioral evaluation run before secondary controls. Each completed phase is reusable; model attempts are never selectively rerun. A resumed interrupted optimizer run is not silently restarted. Harbor cleanup preserves the shared task images, whose executable manifests are checked before evaluation.
 
 ## Phases and audit
 
@@ -36,6 +36,8 @@ uv run python -m experiments.qwen_probe report
 ```
 
 `train --arm probe_graft` runs one treatment. The root wrapper delegates to the existing SFT implementation. A publication check requires the implementation/preregistration commit on `origin` before real parameter updates; if you modify the code, commit and push first. The original trainer's extra accumulation divisor is corrected only by the pilot's opt-in flags, and that difference is documented.
+
+`recover-setup` is an explicit infrastructure repair phase, used only with the run controller stopped. It restores the exact task environments and archives wholly unstarted image-pull failures once, preserving their evidence before the normal run resumes. Any job containing an actual model attempt is ineligible. The dated [protocol amendment](docs/protocol.md) records why this was added during the pilot; the clock is never reset.
 
 Audit packets appear in `artifacts/qwen_probe/audit/packets/`. Running jobs are deferred; create packets after their deployment server has closed so response journals are stable. An auditor reads the full task, trajectory, verifier outcome and rubric while keeping `private_mapping.json` and probe scores hidden. Record an evidence-based judgment, preserving ambiguity:
 

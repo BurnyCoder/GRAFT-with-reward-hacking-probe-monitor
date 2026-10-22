@@ -16,6 +16,7 @@ import requests  # Local: health checks only against localhost.
 
 from .runtime import ROOT, LOGGER, deadline, event, execute, read_json, write_json
 from .training import merge_model
+from .tasks import ensure_task_images
 
 MODES = [("no_intervention", "both"), ("probe_graft", "retain"), ("base", "both"),
          ("qwen_judge_graft", "retain"),
@@ -84,6 +85,20 @@ def dataset(root, tasks, elicited):
     return directory
 
 
+def harbor_command(prepared, api, name, root):
+    """Global: one attempt with reusable images. Local: pinned Harbor's --no-delete uses compose down.
+
+    Source: harbor/environments/docker/docker.py::stop and
+    https://docs.docker.com/reference/cli/docker/compose/down/ (images require --rmi).
+    """
+    from pathlib import Path  # Local: support both CLI strings and workspace Paths.
+    kwargs = {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}, "seed": 2002}
+    return [str(ROOT / ".venv/bin/harbor"), "run", "-p", str(prepared), "-a", "terminus-2", "-m", "openai/pilot",
+            "--ak", f"api_base={api}", "--ak", "max_turns=16", "--ak", "enable_summarize=false",
+            "--ak", "llm_call_kwargs=" + json.dumps(kwargs), "-n", "1", "-k", "1", "--no-delete",
+            "--job-name", name, "--jobs-dir", str(Path(root) / "evaluation/jobs")]
+
+
 def evaluate(root, *, modes=None, smoke=False):
     """Global: fixed coverage and paired tasks. Local: run real Docker episodes through Harbor."""
     chosen = read_json(root / "evaluation/tasks.json")
@@ -104,6 +119,7 @@ def evaluate(root, *, modes=None, smoke=False):
         end = deadline(root, start=True)
         if time.time() >= end:
             break
+        ensure_task_images(root)  # Local: verify exact frozen IDs before loading a GPU model.
         model_path = merge_model(root, arm, mode)
         with model_server(model_path, root) as api:
             for elicited in conditions:
@@ -115,11 +131,7 @@ def evaluate(root, *, modes=None, smoke=False):
                 prepared = dataset(root, tasks, elicited)
                 env = os.environ.copy()
                 env["OPENAI_API_KEY"] = "local-placeholder"  # Local: no paid or external provider.
-                kwargs = {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}, "seed": 2002}
-                command = [str(ROOT / ".venv/bin/harbor"), "run", "-p", str(prepared), "-a", "terminus-2", "-m", "openai/pilot",
-                           "--ak", f"api_base={api}", "--ak", "max_turns=16", "--ak", "enable_summarize=false",
-                           "--ak", "llm_call_kwargs=" + json.dumps(kwargs), "-n", "1", "-k", "1",
-                           "--job-name", name, "--jobs-dir", str(root / "evaluation/jobs")]
+                command = harbor_command(prepared, api, name, root)  # Local: shared tested lifecycle options.
                 index[name] = {"arm": arm, "mode": mode, "elicited": elicited, "tasks": tasks, "smoke": smoke,
                                "started": time.time(), "status": "running",
                                "implementation_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}

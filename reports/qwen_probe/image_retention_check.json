@@ -1,0 +1,17 @@
+{
+  "task": "849",
+  "agent": "nop",
+  "study": false,
+  "checks": [
+    {
+      "attempt": 1,
+      "image": "sha256:f2ec10bf146d60dad37f2603614e693b6ff2052b74567b16e2fef4893551bcfd",
+      "setup_and_cleanup_completed": true
+    },
+    {
+      "attempt": 2,
+      "image": "sha256:f2ec10bf146d60dad37f2603614e693b6ff2052b74567b16e2fef4893551bcfd",
+      "setup_and_cleanup_completed": true
+    }
+  ]
+}
