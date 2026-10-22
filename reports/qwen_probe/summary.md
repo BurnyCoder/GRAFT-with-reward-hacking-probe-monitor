@@ -8,7 +8,7 @@ This report is generated from local manifests and frozen audits. See [protocol](
 | Experiment | Updates | Completed recipe | Status |
 |---|---:|---|---|
 | no_intervention | 20 | True | complete |
-| probe_graft | 0 | False | incomplete |
+| probe_graft | 20 | True | complete |
 | qwen_judge_graft | 0 | False | incomplete |
 | original_graft | 0 | False | incomplete |
 | probe_filtering | 0 | False | incomplete |

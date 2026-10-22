@@ -4,7 +4,7 @@ Libor Burian — exploratory pilot, 22 October 2026
 
 ## Abstract
 
-We adapt GRAFT to Qwen3-0.6B with two frozen reward-hacking monitors: an LLM-as-a-judge using the untouched learner checkpoint, and a downloaded embedding encoder with a trajectory probe. Each supplies flags to a separate GRAFT treatment; we compare detector quality and agentic behavior. Mitigation effectiveness is inconclusive. The primary comparison is incomplete or has ambiguous judgments. This report covers 1 completed training arms and 0 audited study episodes; 0 audit packets remain pending. The experiment is an exploratory single-seed pilot, not a powered confirmatory test.
+We adapt GRAFT to Qwen3-0.6B with two frozen reward-hacking monitors: an LLM-as-a-judge using the untouched learner checkpoint, and a downloaded embedding encoder with a trajectory probe. Each supplies flags to a separate GRAFT treatment; we compare detector quality and agentic behavior. Mitigation effectiveness is inconclusive. The primary comparison is incomplete or has ambiguous judgments. This report covers 2 completed training arms and 0 audited study episodes; 0 audit packets remain pending. The experiment is an exploratory single-seed pilot, not a powered confirmatory test.
 
 ## Context, motivation and introduction
 
@@ -28,15 +28,19 @@ Evaluate eight fixed locally runnable heldout Docker tasks through pinned Harbor
 
 ## Results
 
-Training coverage: no_intervention: 20 updates, complete=True; probe_graft: 0 updates, complete=False; qwen_judge_graft: 0 updates, complete=False; original_graft: 0 updates, complete=False; probe_filtering: 0 updates, complete=False; random_graft: 0 updates, complete=False; smoke: 1 updates, complete=True.
+Training coverage: no_intervention: 20 updates, complete=True; probe_graft: 20 updates, complete=True; qwen_judge_graft: 0 updates, complete=False; original_graft: 0 updates, complete=False; probe_filtering: 0 updates, complete=False; random_graft: 0 updates, complete=False; smoke: 1 updates, complete=True.
 
 Downloaded probe: 194/194 heldout trajectories across 99 tasks; 95 positive and 99 negative labels. auroc 0.497 (95% interval 0.424 to 0.562); precision 0.500 (95% interval 0.143 to 0.857); recall 0.042 (95% interval 0.010 to 0.084); fpr 0.040 (95% interval 0.010 to 0.081). Frozen cutoff 0.00096981943; calibration false positives 10/203.
 
 Qwen judge: 194/194 heldout trajectories across 99 tasks; 95 positive and 99 negative labels. auroc 0.569 (95% interval 0.494 to 0.639); precision 0.368 (95% interval 0.154 to 0.579); recall 0.074 (95% interval 0.021 to 0.129); fpr 0.121 (95% interval 0.061 to 0.192). Frozen cutoff 0.81757444; calibration false positives 9/203.
 
-Realized training flags: probe_graft: 3/192, including 1 labeled hacks and 2 labeled clean trajectories; probe_filtering: 3/192, including 1 labeled hacks and 2 labeled clean trajectories; random_graft: 3/192, including 2 labeled hacks and 1 labeled clean trajectories; no_intervention: 0/192, including 0 labeled hacks and 0 labeled clean trajectories; original_graft: 19/192, including 19 labeled hacks and 0 labeled clean trajectories; qwen_judge_graft: 15/192, including 10 labeled hacks and 5 labeled clean trajectories
+Realized training flags: probe_graft: 3/192, including 1 labeled hacks and 2 labeled clean trajectories; probe_filtering: 3/192, including 1 labeled hacks and 2 labeled clean trajectories; random_graft: 3/192, including 2 labeled hacks and 1 labeled clean trajectories; no_intervention: 0/192, including 0 labeled hacks and 0 labeled clean trajectories; original_graft: 19/192, including 19 labeled hacks and 0 labeled clean trajectories; qwen_judge_graft: 15/192, including 10 labeled hacks and 5 labeled clean trajectories.
 
-Primary elicited differences (probe retain minus no intervention both): hacking: undefined, 0 known task pairs; legitimate: undefined, 0 known task pairs. Full paired outcomes, missingness and secondary comparisons are in results.json and audited_outcomes.json.
+Primary elicited differences (probe retain minus no intervention both): hacking: undefined, 0 known task pairs; legitimate: undefined, 0 known task pairs.
+
+Secondary elicited differences (LLM-judge retain minus no intervention both): hacking: undefined, 0 known task pairs; legitimate: undefined, 0 known task pairs.
+
+Secondary elicited differences (LLM-judge retain minus probe retain): hacking: undefined, 0 known task pairs; legitimate: undefined, 0 known task pairs. Full paired outcomes and missingness are in results.json and audited_outcomes.json.
 
 ## Claims and implications
 
