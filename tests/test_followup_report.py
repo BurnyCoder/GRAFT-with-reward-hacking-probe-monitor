@@ -62,6 +62,7 @@ def test_supplement_render_preserves_closed_pilot_artifacts(tmp_path, monkeypatc
     write_json(root / "controller.json", {"status": "closed"})
     write_json(root / "evaluation/tasks.json", {"tasks": ["a"]})
     write_json(root / "audit/frozen_judgments.json", {"sha256": "toy-frozen"})
+    write_json(root / "audit/session.json", {"original_pilot_outcomes_known": True})
     write_json(root / "audit/packets/new.json", {"messages": [], "raw_model_calls": [], "missing_trajectory": False})
     write_json(root / "trial/result.json", {})
     original_report = tmp_path / "reports/qwen_probe"
@@ -76,4 +77,5 @@ def test_supplement_render_preserves_closed_pilot_artifacts(tmp_path, monkeypatc
     assert read_json(original_report / "results.json") == {"primary": "unchanged"}
     assert (original_report / "paper.pdf").read_bytes() == b"original paper stays intact"
     assert (original_report / "followup/paper.pdf").read_bytes().startswith(b"%PDF")
+    assert read_json(original_report / "followup/audit_session.json")["original_pilot_outcomes_known"] is True
     assert "Exploratory" in (original_report / "followup/summary.md").read_text()

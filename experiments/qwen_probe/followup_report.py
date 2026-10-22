@@ -125,6 +125,9 @@ def report_followup(pilot):
                            ("evaluation/index.json", "evaluation_index.json"), ("audit/judgments.json", "audit_judgments.json"),
                            ("audit/frozen_judgments.json", "audit_freeze.json")):
         shutil.copy2(root / source, destination / target)  # Local: explicit allowlist excludes private mappings and raw logs.
+    for name in ("session", "integrity"):  # Local: retain the dated blinding procedure and pre-reveal proof when supplied by the auditor.
+        if (root / f"audit/{name}.json").exists():
+            shutil.copy2(root / f"audit/{name}.json", destination / f"audit_{name}.json")
     counts, behavior = results["coverage"], results["behavior"]
     condition_sources = markdown_table([["Deployment / prompt", "Cohort"]] +
                                       [[key, ", ".join(value)] for key, value in results["condition_cohorts"].items()])
