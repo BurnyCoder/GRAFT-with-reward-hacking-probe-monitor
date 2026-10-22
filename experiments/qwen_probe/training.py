@@ -14,7 +14,7 @@ from .runtime import ROOT, deadline, event, execute, file_hash, fingerprint, rea
 
 def verify_published(root):
     """Global: preregister before training. Local: HEAD must exist on origin with clean implementation."""
-    paths = ["experiments", "tests", "docs/protocol.md", "pyproject.toml", "uv.lock", "sft/scripts"]
+    paths = ["experiments", "tests", "docs", "pyproject.toml", "uv.lock", "sft/scripts"]
     subprocess.run(["git", "diff", "--exit-code", "HEAD", "--", *paths], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     branches = subprocess.check_output(["git", "branch", "-r", "--contains", commit], cwd=ROOT, text=True)

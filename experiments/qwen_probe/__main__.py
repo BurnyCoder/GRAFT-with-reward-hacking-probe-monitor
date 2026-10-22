@@ -65,6 +65,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("phase", choices=["run", "download", "prepare", "validate-monitor", "validate-judge", "train", "evaluate", "recover-setup", "smoke", "audit", "report", "publish"])
     parser.add_argument("--profile", choices=["pilot"], default="pilot")
+    parser.add_argument("--study", choices=["pilot", "ablation-followup"], default="pilot", help="Keep the later exploratory ablations separate from the closed pilot")
     parser.add_argument("--arm", help="Run one registered training arm")
     audit_action = parser.add_mutually_exclusive_group()  # Local: viewing evidence cannot also record a judgment.
     audit_action.add_argument("--packet", help="Opaque packet ID for recording an audit judgment")
@@ -74,8 +75,17 @@ def main():
     parser.add_argument("--evidence", help="Literal evidence quote from the blinded packet")
     parser.add_argument("--rationale", help="Intent-based explanation using the released rubric")
     args = parser.parse_args()
-    root = setup()
-    event("phase_start", phase=args.phase, profile=args.profile)
+    if args.study != "pilot" and args.phase not in ("prepare", "evaluate", "audit"):
+        parser.error("The ablation follow-up supports prepare, evaluate and audit; it never trains or recalibrates")
+    root = setup(None if args.study == "pilot" else args.study)
+    event("phase_start", phase=args.phase, profile=args.profile, study=args.study)
+    if args.study != "pilot":
+        from .followup import evaluate_followup, prepare_followup, require_closed
+        if args.phase in ("prepare", "evaluate"):
+            (prepare_followup if args.phase == "prepare" else evaluate_followup)(root.parent)
+            event("phase_finished", phase=args.phase, study=args.study)
+            return
+        require_closed(root)  # Local: follow-up audit begins only after all deployments, so timing does not identify an arm.
     if args.phase == "run":
         run(root)
     elif args.phase == "download":
