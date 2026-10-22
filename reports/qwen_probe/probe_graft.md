@@ -2,7 +2,7 @@
 
 Test whether the downloaded out-of-domain detector supplies useful routing flags. Its encoder/head remain frozen; no downstream behavior is used to recalibrate the threshold. Removing the forget adapter is the primary deployment intervention.
 
-Updates: 0. Complete planned training: False.
+Updates: 20. Complete planned training: True.
 
 Method and hyperparameter rationale: [preregistered protocol](../../docs/protocol.md). Exact optimizer arguments are in the per-arm configuration JSON when the run has started. The smoke checkpoint is an engineering check and excluded from study comparisons.
 

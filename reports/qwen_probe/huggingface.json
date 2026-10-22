@@ -1,0 +1,20 @@
+{
+  "collection": "https://huggingface.co/collections/BurnyCoder/qwen3-06b-graft-reward-hacking-probe-pilot-6ad9489d0f6a863cf37b1517",
+  "models": [
+    {
+      "repo": "BurnyCoder/graft-qwen3-06b-no-intervention-pilot",
+      "complete": true,
+      "steps": 20
+    },
+    {
+      "repo": "BurnyCoder/graft-qwen3-06b-probe-graft-pilot",
+      "complete": true,
+      "steps": 20
+    },
+    {
+      "repo": "BurnyCoder/graft-qwen3-06b-qwen-judge-graft-pilot",
+      "complete": true,
+      "steps": 20
+    }
+  ]
+}

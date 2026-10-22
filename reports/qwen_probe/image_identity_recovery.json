@@ -1,0 +1,61 @@
+{
+  "evidence": {
+    "958": {
+      "original_index": "sha256:09efb378cd08eb75e1b2d7847c77d6e1f63a23cdb32e5df8ee10dbc42083d553",
+      "platform_manifest": "sha256:0b22c9100b5b8ed62db29e3ab72a6a50dda82db27438fd56cbe586303d272b44",
+      "manifest_line": 1494,
+      "accepted_line": 1503
+    },
+    "753": {
+      "original_index": "sha256:973d237679c0e1ba05aa830c7c55abc1d1ddb45b1f627d8095797ae652143573",
+      "platform_manifest": "sha256:214991635e401ccb6aac80a5875a832339b2465cda16238c85871e051889cea3",
+      "manifest_line": 2076,
+      "accepted_line": 2086
+    },
+    "solana-data": {
+      "original_index": "sha256:4a6035bbfd5291e6e710bcca5d6381cb8adf46d0e1d95981847c9c7407b31e6b",
+      "platform_manifest": "sha256:c29bee88e5cd3aff63692b3be94fa2f5754f1f7ee65903e1ee299e25c042f332",
+      "manifest_line": 2107,
+      "accepted_line": 2141
+    },
+    "1169": {
+      "original_index": "sha256:6fa5defbd2e0478b05c632597d6f74a5affd85cfdd454a56d6fd9e4d71962bed",
+      "platform_manifest": "sha256:90f5168a7dd86d42dbd58f35953e669e3afdf63ec0441df2452bc30e11ab5b14",
+      "manifest_line": 2200,
+      "accepted_line": 2208
+    },
+    "283": {
+      "original_index": "sha256:3416628d7d70935d433d24d4d2db4377b83f27b905ac18a547d50944d26ecf25",
+      "platform_manifest": "sha256:8c52e73c2083a1d8c6e7059ae361934301e2c41ff0000609154d70eba2d3b130",
+      "manifest_line": 2311,
+      "accepted_line": 2322
+    },
+    "228": {
+      "original_index": "sha256:2018ae240a0a4adbcc468b7130885ac725082a46b2b4ea7a2527fea95191e85f",
+      "platform_manifest": "sha256:26e6d02cb51e0f55cd97c13508f9edab3aefb7ada1776c475b51fb0aebf53028",
+      "manifest_line": 2570,
+      "accepted_line": 2579
+    },
+    "1035": {
+      "original_index": "sha256:5d9d25142c7de57787671af3a32d87c0c9c4c1a01b747e4c4e380ab0e0e85be8",
+      "platform_manifest": "sha256:8805bf628f3555ed71b8dc7f09e1be904cfec40066a50fd9ea4ab7be918aea0b",
+      "manifest_line": 3008,
+      "accepted_line": 3017
+    },
+    "blind-maze-explorer-algorithm": {
+      "original_index": "sha256:2bf302241e129f5360bc854b7b5c3efbba110940efcb734d7c6d0e4298a333a5",
+      "platform_manifest": "sha256:c217caf2c2134c12c3a83f4b0203bf661471ee540332f5802b99d44905238145",
+      "manifest_line": 3073,
+      "accepted_line": 3082
+    },
+    "849": {
+      "original_index": "sha256:dd792bf572370796e9cecae0d9a179b217d8a66a776efeb59ff026060f92d000",
+      "platform_manifest": "sha256:f2ec10bf146d60dad37f2603614e693b6ff2052b74567b16e2fef4893551bcfd",
+      "manifest_line": 3474,
+      "accepted_line": 3485
+    }
+  },
+  "source_log": "1792622715298344357.log",
+  "source_sha256": "16d7ac4476baa83f6f5e1081c12d308c6f4859f4be52c31631007b70809d3c1c",
+  "note": "Platform manifests recovered from original pre-study Docker build logs; original image-index hashes retained."
+}

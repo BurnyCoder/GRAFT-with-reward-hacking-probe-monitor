@@ -1,0 +1,187 @@
+[
+  {
+    "job": "no_intervention-both-plain",
+    "metadata": {
+      "arm": "no_intervention",
+      "mode": "both",
+      "elicited": false,
+      "tasks": [
+        "958",
+        "753",
+        "solana-data",
+        "1169",
+        "283",
+        "228",
+        "1035",
+        "blind-maze-explorer-algorithm"
+      ],
+      "smoke": false,
+      "started": 1792633940.6852808,
+      "status": "finished",
+      "implementation_commit": "e9f89f9ab78731df91dd3cb2c105c788d9993241",
+      "exit_code": 0,
+      "finished": 1792633985.702961
+    },
+    "archived_at": 1792636589.1282706,
+    "trial_count": 8,
+    "reason": "All trials failed to pull deleted local images before any agent/verifier execution",
+    "result_sha256": {
+      "1035__ffzUnkH/result.json": "5a60a12639f4781a7881ad2b70a06b550c89c60fa5b51de3d97707018f655ff4",
+      "1169__k9NCvVd/result.json": "edb138ebb16252a1baf7296876384a83aa6fc9d3a910283f0276ada5bc85db02",
+      "228__SjYsjgK/result.json": "10a4fed1d624d0e4818fb8ff1dd50e60e327f64d979b796094ec6afb8e4105a4",
+      "283__fpJR8oo/result.json": "5e8d53540267288e25646b1753037b06dcbea47ae1ed43c1b24edfacf1f2d380",
+      "753__KxaeKmJ/result.json": "dac57d792790c4ba250c63290fbb7dc43d6fc8f365f1e694142ccfe67312e094",
+      "958__ShVLb7S/result.json": "9e2f2b71a9e54a43f7a1cb37ecb827c0fc89053791e8171bb1c1fa6e55d0c008",
+      "blind-maze-explorer-algorithm__RgrC3J2/result.json": "ed15edc416824995422dd6d4f99032e0ae93aa649e4395bc2b751f51d68551b8",
+      "solana-data__7vZA6Ru/result.json": "932f5a52a6f325d90cc24a644220cea01134335a9d3ce7098281853af1a1d152"
+    }
+  },
+  {
+    "job": "probe_graft-retain-elicited",
+    "metadata": {
+      "arm": "probe_graft",
+      "mode": "retain",
+      "elicited": true,
+      "tasks": [
+        "958",
+        "753",
+        "solana-data",
+        "1169",
+        "283",
+        "228",
+        "1035",
+        "blind-maze-explorer-algorithm"
+      ],
+      "smoke": false,
+      "started": 1792634003.103064,
+      "status": "finished",
+      "implementation_commit": "e9f89f9ab78731df91dd3cb2c105c788d9993241",
+      "exit_code": 0,
+      "finished": 1792634047.5000246
+    },
+    "archived_at": 1792636589.1320403,
+    "trial_count": 8,
+    "reason": "All trials failed to pull deleted local images before any agent/verifier execution",
+    "result_sha256": {
+      "1035__ENAX3qr/result.json": "7d7fea5c23f4520884ac6f40fbcd06c91998e0cbcbf1f0d60930a9aaca74f3e3",
+      "1169__ViT2AwS/result.json": "4f3a6251a1e6d5adea173dbf392b2e966e401c7684eaae5ddc2bea4e9ceb6a5d",
+      "228__wBSDNYA/result.json": "f7d32daef7355300160e8161c967aa0612ea3b1a332c1925656462647080bef5",
+      "283__sVNfuQs/result.json": "e5409a6a5041f062bf3fe293ef0b4ecaca69f6afb44b01c2a492be44dbde7948",
+      "753__GtnRijB/result.json": "347d78e18d2bf05fa18c8d80db469bdef78707f40bfba4729caadaf44e2b495e",
+      "958__UP5MfXg/result.json": "86d82bd90f1e77894abeac8f7cf606169f218c5880688f50781fc53d5dea9bef",
+      "blind-maze-explorer-algorithm__Py6Maw6/result.json": "39719ec899f3630f1bce6a682a7b16304b5e7b2da7479bd2e082a029d66fe382",
+      "solana-data__zGixNZN/result.json": "350e12d966344d6623eba8219e48de9116044cb99db4d79463cc34f8afebf5dd"
+    }
+  },
+  {
+    "job": "probe_graft-retain-plain",
+    "metadata": {
+      "arm": "probe_graft",
+      "mode": "retain",
+      "elicited": false,
+      "tasks": [
+        "958",
+        "753",
+        "solana-data",
+        "1169",
+        "283",
+        "228",
+        "1035",
+        "blind-maze-explorer-algorithm"
+      ],
+      "smoke": false,
+      "started": 1792634047.5388536,
+      "status": "finished",
+      "implementation_commit": "e9f89f9ab78731df91dd3cb2c105c788d9993241",
+      "exit_code": 0,
+      "finished": 1792634093.9097884
+    },
+    "archived_at": 1792636589.135912,
+    "trial_count": 8,
+    "reason": "All trials failed to pull deleted local images before any agent/verifier execution",
+    "result_sha256": {
+      "1035__4oYwnQs/result.json": "76e9cb8cf1d2b6f8e9b40c4d3971018efe1beb5125c42e14b3017a27b7c45717",
+      "1169__JfAXdG9/result.json": "69d1f6768384548bf46152e4edf1ae2f42113fe249673d42ae0917eac49848fe",
+      "228__Z3XvFg2/result.json": "cc019ac848db7fd28d8e58f4676018a9d13145770ad0398d9167180ce277201a",
+      "283__DrWUAbL/result.json": "968a9688282b4df837099e3c4ffd433b97d4ebc69559430d6dac1f351f07406b",
+      "753__d5yArww/result.json": "373de08268e737aeaaff8fe7d2422898288e14a9c945b0e9cee44c94f58701e4",
+      "958__3DDeqVu/result.json": "f57fad340191c3fbfaa62b98deb7d30d2ea38e4a3c1a2e758a7f38025fafe676",
+      "blind-maze-explorer-algorithm__zcxrrpf/result.json": "4f5b4f947cc19b07d63105bac87e68638dc18a2a71b09cb06e56915047c3dec8",
+      "solana-data__ndpxagf/result.json": "5177c53e5626b3e29806276f296e1e04e7b640aa0b6b9b57f666965b876f0c34"
+    }
+  },
+  {
+    "job": "base-both-elicited",
+    "metadata": {
+      "arm": "base",
+      "mode": "both",
+      "elicited": true,
+      "tasks": [
+        "958",
+        "753",
+        "solana-data",
+        "1169",
+        "283",
+        "228",
+        "1035",
+        "blind-maze-explorer-algorithm"
+      ],
+      "smoke": false,
+      "started": 1792634107.0629704,
+      "status": "finished",
+      "implementation_commit": "e9f89f9ab78731df91dd3cb2c105c788d9993241",
+      "exit_code": 0,
+      "finished": 1792634153.5389822
+    },
+    "archived_at": 1792636589.139393,
+    "trial_count": 8,
+    "reason": "All trials failed to pull deleted local images before any agent/verifier execution",
+    "result_sha256": {
+      "1035__ShWLC5j/result.json": "350889c9219e74e9eabc655734bfe2567bdf686970733e156eb755a0d41e8533",
+      "1169__uk7wsZR/result.json": "c64f2712d24907795a182abcecde67e7cb1d7ece9db5eb632340ac41320f9649",
+      "228__rkYTGuD/result.json": "c8601ba7d775c646552969da30ea74446060dc53e631e529ea6411d8dd647d97",
+      "283__CwAjNhT/result.json": "0478b0a0e9887f7b419d5e6e0727b324657bb5a494a7477f1e213a3529f828df",
+      "753__RKnjjxM/result.json": "9c6c177db9cb95aad0028b8abc41cd6ea08c26f0d45be65b2c2fa4c786008b83",
+      "958__vgpbmpW/result.json": "a5300aaedc85f395ad76b227ad759df94eafde14fad007eaeb47cc335b20b45a",
+      "blind-maze-explorer-algorithm__XguDkhR/result.json": "23a3402ca49ee77b56321885830e1d14e469767a73d2bca028f48cda05f1e400",
+      "solana-data__ETbaMB4/result.json": "c99ee22e651e5c4e3226f9027e6cb70cfa165442b277a69a9fb52a868e158d7b"
+    }
+  },
+  {
+    "job": "base-both-plain",
+    "metadata": {
+      "arm": "base",
+      "mode": "both",
+      "elicited": false,
+      "tasks": [
+        "958",
+        "753",
+        "solana-data",
+        "1169",
+        "283",
+        "228",
+        "1035",
+        "blind-maze-explorer-algorithm"
+      ],
+      "smoke": false,
+      "started": 1792634153.5781717,
+      "status": "finished",
+      "implementation_commit": "e9f89f9ab78731df91dd3cb2c105c788d9993241",
+      "exit_code": 0,
+      "finished": 1792634199.95021
+    },
+    "archived_at": 1792636589.1427164,
+    "trial_count": 8,
+    "reason": "All trials failed to pull deleted local images before any agent/verifier execution",
+    "result_sha256": {
+      "1035__BKTXDo4/result.json": "28cd7a0cb91de2678392f6bea0c9db81e1a11686437000641591283f33da9c7b",
+      "1169__9GcrfAP/result.json": "ecbb05a3be72534452bdc92134662d761ffe817da138eb912fea9f093a954141",
+      "228__JmmxNmu/result.json": "3a955f2e816517c25f31cc0e4d0ed8f4326daa424b51ab29d72122e0659f614b",
+      "283__QgMunDy/result.json": "4aabf2f1ece69ffb566dd6886c9065ea16b7170022b6fdc1201f1766260292e7",
+      "753__Z56QDZg/result.json": "01db6a7be033268e1087d4fbcd07ad498a443522541e3aa2bb02a3cf71eae403",
+      "958__fEseVKo/result.json": "3184206b069d39cae0b78a1331e2e8d7991129f9f5643c3ad5cc760981db7833",
+      "blind-maze-explorer-algorithm__zDtdhcg/result.json": "079b2987909caa66b70798df0ffa29a6f5a8960cc1003717c1c1c2ff2cf6a41f",
+      "solana-data__dPZ3k3y/result.json": "7a39e289364eda933e32542f12b4a1cf3c2a83c81ce1e4c06922182d6e95049e"
+    }
+  }
+]

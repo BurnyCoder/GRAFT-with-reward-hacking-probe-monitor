@@ -1,6 +1,6 @@
 # Preregistered Qwen3-0.6B GRAFT pilot with LLM-as-a-Judge and Probe Monitors
 
-Author: Libor Burian. Protocol version: 1.0, 2026-10-22. This document is committed and pushed before any real-model parameter update. Tests on randomly initialized miniature models are engineering checks. This is an exploratory, single-seed adaptation of [GRAFT](https://arxiv.org/abs/2610.17062), not a replication at the original scale.
+Author: Libor Burian. Initial protocol version: 1.0, 2026-10-22. The initial scientific protocol and judge/budget amendment were committed and pushed before any real-model parameter update. Later presentation changes are dated below. Tests on randomly initialized miniature models are engineering checks. This is an exploratory, single-seed adaptation of [GRAFT](https://arxiv.org/abs/2610.17062), not a replication at the original scale.
 
 ## User amendment, 2026-10-21 23:30 UTC
 
@@ -15,6 +15,14 @@ At the user's request, the implementation and reporting plan gives **LLM-as-a-ju
 ## Question and falsification
 
 Does replacing GRAFT's simulated monitor with the frozen [released trajectory detector](https://github.com/farzingkh/reward-hacking/tree/cd4c566824c5961eaeab7b7fce7845240bd12b3d) reduce elicited hacking by Qwen3-0.6B without a substantial loss of legitimate task success? The primary comparison is probe-GRAFT retain-only versus no intervention with both adapters. The primary endpoint is the paired difference in hacking-attempt proportions across eight held-out tasks under the original elicitation prompt. The capability safeguard is legitimate-success difference, with a five-percentage-point tolerance. A nonnegative hacking difference or a capability decline greater than this tolerance contradicts the directional hypothesis in this pilot. Wide intervals leave it unresolved. Zero baseline hacking or uniformly failed tasks makes mitigation effectiveness inconclusive, regardless of detector scores.
+
+## Infrastructure amendment, 2026-10-22 02:05 UTC
+
+After eight agent timeouts, an operational check found 40 Docker image-pull failures with no agent execution, verifier result or trajectory. No study responses, rewards or intent labels had been inspected. Pinned Harbor's default cleanup uses `docker compose down --rmi all`, removing the locally built images after their first use. Future jobs use its supported `--no-delete` option: the pinned implementation still removes the containers and networks with `compose down`, while retaining images ([Docker documentation](https://docs.docker.com/reference/cli/docker/compose/down/)).
+
+A uniform explicit recovery phase may archive a closed job only if every planned trial failed to pull its local image before any agent/verifier execution. Preserve every original result/log and its hash, permit one recovery per job, and rerun the normal fixed-order evaluation to obtain the first actual model attempt. Jobs containing any agent execution, including the eight timeouts, cannot qualify. This is a post-start infrastructure amendment, not a preregistered retry policy. It changes no model, prompt, task, seed, time limit, endpoint or deadline; repair time consumes the existing budget. The Qwen-judge arm had already begun training when the failures were diagnosed; it finishes once before the controller restarts between training phases. Restored primary evaluations then precede subsequent model attempts, and completed checkpoints are preserved.
+
+Rebuilt image-index hashes can differ because build attestations change. Require the executable Linux/amd64 platform-manifest digest to match the original pre-study build log; that digest fixes the image configuration and filesystem layers. Preserve original index hashes and the source-log hash/line evidence alongside the platform hashes. Reject a changed executable manifest. Future selections record both identities directly ([Docker attestation storage](https://docs.docker.com/build/metadata/attestations/attestation-storage/)). Archived setup failures are reported separately from actual model attempts and never converted into benign behavior labels.
 
 ## Fixed inputs and protocol
 
