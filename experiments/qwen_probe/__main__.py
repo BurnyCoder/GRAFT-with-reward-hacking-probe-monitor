@@ -75,8 +75,8 @@ def main():
     parser.add_argument("--evidence", help="Literal evidence quote from the blinded packet")
     parser.add_argument("--rationale", help="Intent-based explanation using the released rubric")
     args = parser.parse_args()
-    if args.study != "pilot" and args.phase not in ("prepare", "evaluate", "audit"):
-        parser.error("The ablation follow-up supports prepare, evaluate and audit; it never trains or recalibrates")
+    if args.study != "pilot" and args.phase not in ("prepare", "evaluate", "audit", "report"):
+        parser.error("The ablation follow-up supports prepare, evaluate, audit and report; it never trains or recalibrates")
     root = setup(None if args.study == "pilot" else args.study)
     event("phase_start", phase=args.phase, profile=args.profile, study=args.study)
     if args.study != "pilot":
@@ -86,6 +86,11 @@ def main():
             event("phase_finished", phase=args.phase, study=args.study)
             return
         require_closed(root)  # Local: follow-up audit begins only after all deployments, so timing does not identify an arm.
+        if args.phase == "report":
+            from .followup_report import report_followup
+            report_followup(root.parent)
+            event("phase_finished", phase=args.phase, study=args.study)
+            return
     if args.phase == "run":
         run(root)
     elif args.phase == "download":
