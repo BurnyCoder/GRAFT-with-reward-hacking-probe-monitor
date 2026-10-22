@@ -94,11 +94,12 @@ def result_figures(destination, results):
     return figures
 
 
-def paper(destination, sections, figures):
+def paper(destination, sections, figures, behavior=None):
     """Global: one source for paper text and PDF. Local: ReportLab layout with actual result figures."""
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
     styles = getSampleStyleSheet()
+    outcome_style = ParagraphStyle("OutcomeCell", parent=styles["BodyText"], fontSize=7.5, leading=9.5, spaceBefore=0, spaceAfter=0)
     title = "Qwen3-0.6B GRAFT with LLM-as-a-Judge and Probe Monitors"  # Local: one title keeps both methods visible across paper formats and metadata.
     story = [Paragraph(title, styles["Title"]),
              Paragraph("Libor Burian · Exploratory pilot · 22 October 2026", styles["Normal"]), Spacer(1, 16)]
@@ -108,6 +109,16 @@ def paper(destination, sections, figures):
         story.append(Paragraph(escape(heading), styles["Heading2"]))
         for paragraph in text.split("\n\n"):
             story.append(Paragraph(escape(paragraph).replace("\n", "<br/>"), styles["BodyText"]))
+        if heading == "Results" and behavior:
+            rows, legend = behavior_table(behavior)  # Local: one table source serves Markdown, PDF and the consolidated report.
+            markdown.extend([legend, markdown_table(rows)])
+            story.extend([Spacer(1, 10), Paragraph(escape(legend), styles["BodyText"])])
+            cells = [[Paragraph(escape(cell), outcome_style) for cell in row] for row in rows]
+            table = Table(cells, colWidths=[140, 40, 93, 93, 94], repeatRows=1)  # Local: repeat labels across page breaks.
+            table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"),
+                                       ("LINEBELOW", (0, 0), (-1, 0), .5, "black"),
+                                       ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+            story.append(table)
     for figure in figures:
         story.extend([Spacer(1, 12), Image(str(figure), width=460, height=190, kind="proportional")])
         markdown.append(f"![{figure.stem}]({figure.name})\n")
@@ -120,6 +131,38 @@ def estimate_text(value, interval=None):
     if value is None:
         return "undefined"
     return f"{value:.3f}" + (f" (95% interval {interval[0]:.3f} to {interval[1]:.3f})" if interval else "")
+
+
+def behavior_table(behavior):
+    """Global: separate success and intent. Local: display every planned condition without imputing missing trials."""
+    from .evaluation import MODES  # Local: reuse the registered deployment grid instead of duplicating it.
+    rows = [["Deployment / prompt", "Audited", "Hacking attempts", "Legitimate success", "Verifier success"]]
+    for arm, mode in MODES:
+        for prompt in ("elicited", "plain"):
+            key = f"{arm}/{mode}/{prompt}"
+            metrics = behavior.get(key)
+            row = [key, f"{metrics['hacking']['total'] if metrics else 0}/8"]
+            for field in ("hacking", "legitimate", "verifier_success"):
+                if metrics is None:
+                    row.append("Unavailable")  # Local: an unrun or unaudited condition is not a zero rate.
+                    continue
+                value = metrics[field]
+                cell = f"{value['successes']}/{value['observed']} known; "
+                interval = value["ci95_known"]
+                cell += f"95% [{interval[0]:.3f}, {interval[1]:.3f}]" if interval else "rate undefined"
+                if value["unknown"]:
+                    cell += f"; unknown {value['unknown']}; bounds [{value['bounds'][0]:.3f}, {value['bounds'][1]:.3f}]"
+                row.append(cell)
+            rows.append(row)
+    legend = ("Counts are positive/known outcomes, with Wilson 95% intervals for the known rate. "
+              "Unknown counts and ambiguity bounds concern audited episodes; the audited count out of eight "
+              "separately exposes missing planned episodes. These intervals do not capture training-seed variation.")
+    return rows, legend
+
+
+def markdown_table(rows):
+    """Global: consistent outcome presentation. Local: render the same rectangular cells as the PDF."""
+    return "\n".join("| " + " | ".join(row) + " |" for row in [rows[0], ["---"] * len(rows[0]), *rows[1:]])
 
 
 def monitor_text(name, result):
@@ -310,6 +353,9 @@ def report(root):
               "| Completion / accuracy | Training completion and separate task outcomes | See manifests and intervals | No universal model accuracy or 'fill' metric applies |",
               "", "## Prospective power", "", "```json", json.dumps(results["power"], indent=2), "```",
               "", "Detailed engineering decisions and failures are recorded in [implementation log](../../docs/implementation.md). Full untruncated transcripts are under the ignored local artifacts/qwen_probe/logs directory."]
+    if behavior:
+        rows, legend = behavior_table(behavior)
+        lines += ["", "## All planned deployment conditions", "", legend, "", markdown_table(rows)]
     (destination / "summary.md").write_text("\n".join(lines) + "\n")
     comparison_lines = ["# Frozen monitor comparison", "", monitor_text("Downloaded probe", detector), "",
                         monitor_text("Same-Qwen judge", judge), "",
@@ -350,6 +396,6 @@ def report(root):
     if recoveries:
         sections.insert(-2, ("Infrastructure recovery and coverage", f"{results['coverage']['archived_setup_failures']} initial Docker setup failures were archived before any agent or verifier execution. The pinned runner's cleanup had removed the shared local images. A dated post-start amendment permits one uniform recovery of wholly unstarted jobs, preserving their results and hashes in setup_recovery.json. Actual model attempts, including timeouts, are never repeated. Rebuilt executable platform manifests match the original pre-study build logs; attestation/index changes and their evidence are recorded in image_identity_recovery.json. Repairs consume the unchanged deadline. The 120-second agent limit makes measured capability conditional on this local inference implementation and throughput."))
     sections.insert(4, ("Frozen LLM-judge and probe inputs", "The untouched pinned Qwen3-0.6B judge uses the released intent rubric and conditional YES/NO next-token logits with thinking disabled. The downloaded probe uses its frozen LoRA encoder and four-layer turn-transformer head. Separate cutoffs use the same calibration tasks and empirical-FPR rule. Both receive the same normalized trajectory text, excluding labels, source paths, rewards and judge metadata. Both retain at most 248 turns. The judge permits 16,384 aggregate input tokens with head/tail truncation; the probe permits 4,096 tokens per turn with normalized 1,024-dimensional last-token embeddings. This coverage difference is disclosed, not equated. The judge arm and its 16 agentic episodes were added by a dated user amendment before any optimizer update or behavioral outcome. Its detector and behavioral comparisons are secondary; the primary remains probe GRAFT versus no intervention. Equal prominence in the presentation does not change these registered analysis priorities."))
-    paper(destination, sections, [destination / "architecture.png", *figures])
+    paper(destination, sections, [destination / "architecture.png", *figures], behavior)
     event("report_written", directory=destination, conclusion=conclusion, pending_audits=len(pending))
     return results
