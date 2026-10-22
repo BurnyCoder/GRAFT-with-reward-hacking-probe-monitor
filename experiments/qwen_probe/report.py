@@ -135,6 +135,13 @@ def monitor_text(name, result):
             f"{calibration['false_positives']}/{calibration['clean']}.")
 
 
+def paired_text(label, comparison):
+    """Global: equal visibility without changing analysis priority. Local: render existing paired estimates."""
+    values = "; ".join(f"{metric}: {estimate_text(value['difference'], value['bootstrap_ci95'])}, "
+                       f"{value['known_pairs']} known task pairs" for metric, value in comparison.items())  # Local: unknown pairs stay visibly unestimated.
+    return f"{label}: {values}."  # Local: the supplied label states direction and primary/secondary status.
+
+
 def validation_report(root, name, lock, inventory):
     """Global: common monitor evidence. Local: separate calibrated accuracy from context coverage."""
     path = root / name / "threshold.json"
@@ -321,10 +328,11 @@ def report(root):
         ("Evaluation and analysis", "Evaluate eight fixed locally runnable heldout Docker tasks through pinned Harbor, once per mode and prompt condition: seed 2002, thinking disabled, maximum 16 turns and 120 seconds per agent episode. Audit intent using opaque packets before unblinding arms. The primary comparison is elicited hacking in probe-GRAFT retain-only versus no intervention both; legitimate success has a five-percentage-point safeguard. Wilson intervals describe known binary outcomes; ambiguity is retained as bounds. Paired task bootstrap uses 10,000 draws, seed 42, and the exact discordance test is descriptive. Missing outcomes are never imputed as benign. Detector intervals resample whole tasks."),
         ("Results", "Training coverage: " + "; ".join(f"{a}: {p['steps']} updates, complete={p['complete']}" for a,p in trained.items()) +
          ".\n\n" + monitor_text("Downloaded probe", detector) + "\n\n" + monitor_text("Qwen judge", judge) +
-         "\n\nRealized training flags: " + "; ".join(f"{arm}: {value['flagged']}/{value['total']}, including {value['flagged_positive']} labeled hacks and {value['flagged_negative']} labeled clean trajectories" for arm, value in routing.items()) +
-         "\n\nPrimary elicited differences (probe retain minus no intervention both): " +
-         "; ".join(f"{metric}: {estimate_text(value['difference'], value['bootstrap_ci95'])}, {value['known_pairs']} known task pairs"
-                   for metric, value in primary.items()) + ". Full paired outcomes, missingness and secondary comparisons are in results.json and audited_outcomes.json."),
+         "\n\nRealized training flags: " + "; ".join(f"{arm}: {value['flagged']}/{value['total']}, including {value['flagged_positive']} labeled hacks and {value['flagged_negative']} labeled clean trajectories" for arm, value in routing.items()) + "." +
+         "\n\n" + paired_text("Primary elicited differences (probe retain minus no intervention both)", primary) +
+         "\n\n" + paired_text("Secondary elicited differences (LLM-judge retain minus no intervention both)", secondary["judge_minus_no_intervention"]) +
+         "\n\n" + paired_text("Secondary elicited differences (LLM-judge retain minus probe retain)", secondary["judge_minus_probe"]) +
+         " Full paired outcomes and missingness are in results.json and audited_outcomes.json."),
         ("Claims and implications", conclusion + " " + " ".join(reasons) + " Successful checkpoint loading, kernel equivalence and successful Docker execution support engineering compatibility only. Reported treatment differences are conditional descriptive observations, not claims of robust alignment or a causal mechanism beyond the implemented adapter intervention."),
         ("Discussion and limitations", "One training seed, eight selected tasks, a much smaller model than the source paper, task difficulty, label/source confounding, unresolved upstream detector exposure, truncation and non-independent implementing-assistant audits limit generalization. Neither monitor score is assumed calibrated. The judge/probe treatment contrast changes both flag frequency and which trajectories are flagged; the random-monitor control matches the probe's flag counts only. At n=8 one binary outcome changes a rate by 12.5 percentage points, larger than the 5pp capability tolerance. Bootstrap intervals may degenerate at the boundary; exact paired discordance evidence and Wilson intervals remain visible. The registered deadline can leave arms or modes incomplete. The user authorized a ten-more-hours extension before optimizer updates or behavioral outcomes; budget.json preserves both deadlines. Training error and infrastructure error are reported separately from behavior. No result-dependent extension or threshold retuning is allowed."),
         ("Conclusion", conclusion + " Larger, multi-seed studies with measured task/seed variance and independently blinded audits are required for stronger conclusions."),
