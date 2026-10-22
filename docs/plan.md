@@ -6,7 +6,7 @@ This checklist tracks delivery. The [preregistered protocol](protocol.md) owns s
 - [x] Implement independently callable preparation, frozen-monitor validation, training, Docker evaluation, blinded audit, report and publication phases behind one run command.
 - [x] Pin and verify the downloaded probe artifacts and reproduce the released encoder/head preprocessing, capacity and truncation accounting.
 - [x] Add the untouched Qwen3-0.6B LLM judge as both a detector comparator and a separate GRAFT treatment, with its own frozen calibration cutoff.
-- [x] **Headline both LLM-as-a-judge and the downloaded probe in the README and paper**, including the abstract and method description. Preserve the registered primary and secondary comparisons.
+- [x] **Headline both LLM-as-a-judge and the downloaded probe in the README and paper**, including the abstract and method description, and align the existing Hugging Face collection title. Preserve the registered primary and secondary comparisons.
 - [x] Lock task separation, calibration records, the balanced training set, common context limit, record order and initialization seed.
 - [x] Verify metadata exclusion, threshold freezing, routing, accumulation scaling, Liger loss/gradient equivalence and small-model adapter merging; retain test and engineering evidence.
 - [x] Publish implementation and preregistration before real-model optimizer updates; complete the real download → score → train → merge → Docker → audit → report smoke path.

@@ -27,6 +27,27 @@ def hub_environment():
     return environment
 
 
+def ensure_collection(cli, namespace, env, root):
+    """Global: consistent monitor framing without duplicate collections. Local: persist the Hub-returned identity.
+
+    Sources: https://huggingface.co/docs/huggingface_hub/guides/collections and `hf collections update --help`.
+    """
+    path = root / "hub/publication.json"  # Local: the saved URL identifies the existing collection across title changes.
+    previous = read_json(path) if path.exists() else {}  # Local: retain already published model metadata on an interrupted refresh.
+    title = "Qwen3-0.6B GRAFT with LLM-as-a-Judge and Probe Monitors"  # Global: match the README and paper headline.
+    description = "Single-seed pilot comparing frozen LLM-judge and probe monitors. Checkpoints and evidence; no established safety guarantee."
+    if previous.get("collection"):  # Local: update the recorded object instead of looking up a new title.
+        slug = previous["collection"].split("/collections/", 1)[-1]  # Local: convert the public URL to the CLI's collection identifier.
+        if not slug.startswith(namespace + "/"):  # Local: an old workspace cannot redirect publication into another account.
+            raise RuntimeError("Saved collection belongs to a different Hugging Face namespace")
+        command = [cli, "collections", "update", slug, "--title", title]  # Local: metadata updates preserve collection items.
+    else:
+        command = [cli, "collections", "create", title, "--namespace", namespace, "--exists-ok"]  # Local: a fresh replication creates one collection.
+    collection = json.loads(subprocess.check_output(command + ["--description", description, "--format", "json"], env=env, text=True))
+    write_json(path, previous | {"collection": "https://huggingface.co/collections/" + collection["slug"]})  # Local: remember a changed slug before uploads begin.
+    return collection["slug"]  # Local: every subsequent upload and membership update uses the same identity.
+
+
 def publish(root):
     """Global: user-authorized publication. Local: upload only checkpoints/configs/cards/reports."""
     env = hub_environment()
@@ -35,10 +56,7 @@ def publish(root):
     namespace = identity.get("name") or identity.get("user")
     if not isinstance(namespace, str):
         raise RuntimeError("Could not determine the authenticated Hugging Face namespace")
-    collection = json.loads(subprocess.check_output([cli, "collections", "create", "Qwen3-0.6B GRAFT reward-hacking probe pilot",
-        "--namespace", namespace, "--description", "Exploratory single-seed pilot adapters, configs and evidence; no established safety guarantee.",
-        "--exists-ok", "--format", "json"], env=env, text=True))
-    slug = collection["slug"]
+    slug = ensure_collection(cli, namespace, env, root)  # Local: refresh the existing collection even after a headline change.
     published = []
     for arm in ARMS:
         folder = root / "checkpoints" / arm

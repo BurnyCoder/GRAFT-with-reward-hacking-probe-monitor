@@ -13,3 +13,26 @@ def test_hub_auth_uses_default_location_without_changing_parent(monkeypatch):
     assert environment["HF_XET_CACHE"] == str(ROOT / ".cache/huggingface/xet")
     import os  # Local: verify the parent process is unaffected by child configuration.
     assert os.environ["HF_HOME"] == "workspace-cache"
+
+
+def test_collection_rename_reuses_recorded_identity(tmp_path, monkeypatch):
+    """Global: both monitor headlines must not duplicate published artifacts. Local: reuse the saved slug."""
+    from experiments.qwen_probe import publish  # Local: patch only the publication subprocess, never network state.
+    from experiments.qwen_probe.runtime import read_json, write_json
+    old = "Researcher/old-title-123"  # Local: collection identity belongs to the authenticated namespace.
+    new = "Researcher/llm-judge-and-probe-123"  # Local: a changed title may return a changed human-readable slug.
+    manifest = {"collection": "https://huggingface.co/collections/" + old, "models": [{"repo": "Researcher/model"}]}
+    write_json(tmp_path / "hub/publication.json", manifest)
+    calls = []  # Local: the assertion detects an accidental create request before any real publication.
+
+    def cli(command, **kwargs):
+        """Local: return a realistic collection update response without authenticating or uploading."""
+        calls.append(command)
+        return '{"slug": "Researcher/llm-judge-and-probe-123"}'
+
+    monkeypatch.setattr(publish.subprocess, "check_output", cli)
+    assert publish.ensure_collection("hf", "Researcher", {}, tmp_path) == new
+    assert len(calls) == 1 and calls[0][:4] == ["hf", "collections", "update", old]
+    assert "LLM-as-a-Judge and Probe Monitors" in calls[0][calls[0].index("--title") + 1]
+    saved = read_json(tmp_path / "hub/publication.json")
+    assert saved["collection"].endswith(new) and saved["models"] == manifest["models"]
