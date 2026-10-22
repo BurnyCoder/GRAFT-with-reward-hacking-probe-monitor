@@ -164,6 +164,19 @@ def validation_report(root, name, lock, inventory):
     return result
 
 
+def training_status(root, arm):
+    """Global: distinguish observed updates from saved models. Local: combine final manifests and live logs."""
+    folder = root / "checkpoints" / arm  # Local: each registered treatment has separate evidence.
+    path, metrics = folder / "progress.json", folder / "metrics.jsonl"  # Local: the trainer writes metrics after optimizer.step.
+    status = read_json(path) if path.exists() else {"complete": False, "steps": 0, "status": "not run"}
+    status["checkpoint_saved"] = path.exists() and (folder / "adapter_state_dict.pt").exists()  # Local: a loss log is not a checkpoint.
+    if metrics.exists():  # Local: retain actual observed learning curves even before a trainer exits.
+        status["learning_curve"] = [json.loads(line) for line in metrics.read_text().splitlines() if line]
+        if not path.exists() and status["learning_curve"]:  # Local: completion still requires the trainer's final manifest.
+            status.update(steps=status["learning_curve"][-1]["step"], status="updates logged; final checkpoint not recorded")
+    return status  # Local: an interrupted checkpoint remains incomplete even if it contains useful weights.
+
+
 def report(root):
     """Global: complete and incomplete results are both visible. Local: compute only observed metrics."""
     destination = ROOT / "reports/qwen_probe"
@@ -175,13 +188,7 @@ def report(root):
     public_fields = ("packet_id", "task", "arm", "mode", "elicited", "smoke", "hacking", "legitimate",
                      "verifier_success", "agent_error", "evidence", "rationale", "auditor", "judged_at", "packet_fingerprint")
     write_json(destination / "audited_outcomes.json", [{key: row[key] for key in public_fields} for row in audited])
-    trained = {}
-    for arm in (*ARMS, "smoke"):
-        path = root / "checkpoints" / arm / "progress.json"
-        trained[arm] = read_json(path) if path.exists() else {"complete": False, "steps": 0, "status": "not run"}
-        metrics = root / "checkpoints" / arm / "metrics.jsonl"
-        if metrics.exists():
-            trained[arm]["learning_curve"] = [json.loads(line) for line in metrics.read_text().splitlines() if line]
+    trained = {arm: training_status(root, arm) for arm in (*ARMS, "smoke")}  # Local: one status rule for every report and figure.
     detector, judge, detector_comparison = ({"status": "not run"} for _ in range(3))
     data_summary, routing = {}, {}  # Local: absent manifests remain absent evidence.
     lock_path, threshold_path = root / "data/lock.json", root / "monitor/threshold.json"
