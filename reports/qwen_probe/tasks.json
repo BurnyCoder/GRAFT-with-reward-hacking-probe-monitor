@@ -1,0 +1,26 @@
+{
+  "tasks": [
+    "958",
+    "753",
+    "solana-data",
+    "1169",
+    "283",
+    "228",
+    "1035",
+    "blind-maze-explorer-algorithm"
+  ],
+  "smoke_task": "849",
+  "exclusions": [],
+  "images": {
+    "958": "sha256:09efb378cd08eb75e1b2d7847c77d6e1f63a23cdb32e5df8ee10dbc42083d553",
+    "753": "sha256:973d237679c0e1ba05aa830c7c55abc1d1ddb45b1f627d8095797ae652143573",
+    "solana-data": "sha256:4a6035bbfd5291e6e710bcca5d6381cb8adf46d0e1d95981847c9c7407b31e6b",
+    "1169": "sha256:6fa5defbd2e0478b05c632597d6f74a5affd85cfdd454a56d6fd9e4d71962bed",
+    "283": "sha256:3416628d7d70935d433d24d4d2db4377b83f27b905ac18a547d50944d26ecf25",
+    "228": "sha256:2018ae240a0a4adbcc468b7130885ac725082a46b2b4ea7a2527fea95191e85f",
+    "1035": "sha256:5d9d25142c7de57787671af3a32d87c0c9c4c1a01b747e4c4e380ab0e0e85be8",
+    "blind-maze-explorer-algorithm": "sha256:2bf302241e129f5360bc854b7b5c3efbba110940efcb734d7c6d0e4298a333a5",
+    "849": "sha256:dd792bf572370796e9cecae0d9a179b217d8a66a776efeb59ff026060f92d000"
+  },
+  "selection": "seed 42, Docker build and launch only; no model/verifier outcomes used"
+}

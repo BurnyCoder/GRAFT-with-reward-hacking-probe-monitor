@@ -1,0 +1,7 @@
+{
+  "threshold": 0.0009698194335214794,
+  "comparison": ">",
+  "calibration": "6d209994c45db7beaa4316bfcd98ec4de6b6a7a33faa5dd32328d2409eae7d6a",
+  "n_clean": 203,
+  "target_empirical_fpr": 0.05
+}

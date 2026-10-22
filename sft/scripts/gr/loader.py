@@ -132,6 +132,8 @@ def _prep_with_classification(
         desc=f"Tokenizing {jsonl_path.name}{desc_suffix}",
     )
     ds = ds.add_column("classification", classifications)
+    if records and "record_id" in records[0]:  # Pilot: preserve immutable identity until ordering is fixed.
+        ds = ds.add_column("record_id", [r["record_id"] for r in records])
     ds = ds.filter(lambda ex: any(ex["assistant_masks"]), num_proc=8)
     return ds
 
@@ -140,13 +142,20 @@ def build_collator(tokenizer):
     """Padding-free collator that carries `classification` as a side-car tensor."""
     base = DataCollatorForLanguageModeling(
         pad_token_id=tokenizer.pad_token_id,
-        completion_only_loss=False,
         padding_free=True,
     )
 
     def collate(examples):
-        classifications = [ex.pop("classification") for ex in examples]
-        batch = base(examples)
+        """Keep routing separate; supply explicit labels for TRL's padding-only collator.
+
+        Source: https://github.com/huggingface/trl/pull/6037 moved mask application
+        out of collation. Retain assistant_masks too for older released TRL versions.
+        """
+        classifications = [ex["classification"] for ex in examples]  # Preserve reusable dataset records.
+        prepared = [{**ex, "labels": [token if mask else -100 for token, mask in
+                                     zip(ex["input_ids"], ex["assistant_masks"], strict=True)]}
+                    for ex in examples]  # Only assistant tokens contribute to the SFT objective.
+        batch = base(prepared)  # TRL handles flattening and first-token boundary masking.
         batch["classification"] = torch.tensor(classifications, dtype=torch.long)
         return batch
 
@@ -175,6 +184,7 @@ def build_gr_loader(
     filter_overlong: bool = False,
     forget_only_prob: float = 0.0,
     no_routing: bool = False,
+    stable_order: bool = False,  # Pilot opt-in; released runs keep their pool-concatenation order.
 ) -> GRLoaderBundle:
     _patch_chat_template_for_assistant_mask(tokenizer)
 
@@ -228,6 +238,8 @@ def build_gr_loader(
     )
 
     ds = concatenate_datasets([ds_forget, ds_retain])
+    if stable_order:  # Different monitors put records in different files; sort before seeded shuffling.
+        ds = ds.sort("record_id").remove_columns(["record_id"])
     if no_routing:
         # Override classifications: every record becomes CLASS_UNCLASSIFIED so the
         # train-time dispatch routes everything through the same path. Combined with
@@ -242,6 +254,7 @@ def build_gr_loader(
     dl = DataLoader(
         ds, batch_size=1, shuffle=True,
         collate_fn=collator, num_workers=num_workers, drop_last=True,
+        generator=torch.Generator().manual_seed(classifier_seed) if stable_order else None,
     )
 
     # Count per-class example counts for logging (post-filter dataset).

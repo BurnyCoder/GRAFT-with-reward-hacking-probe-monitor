@@ -4,8 +4,12 @@ __pycache__/
 .venv/
 .venvs/
 .pytest_cache/
+.ruff_cache/
 *.egg-info/
 wandb/
+.cache/
+artifacts/
+.python-version
 *.log
 .DS_Store
 

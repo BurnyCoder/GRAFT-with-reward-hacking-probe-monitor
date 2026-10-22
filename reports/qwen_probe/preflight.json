@@ -1,0 +1,8 @@
+{
+  "max_length": 16384,
+  "seconds": 13.571575164794922,
+  "peak_bytes": 3528999936,
+  "loss": 10.420150756835938,
+  "optimizer_moment_bytes": 88080384,
+  "parameter_updates": 0
+}
