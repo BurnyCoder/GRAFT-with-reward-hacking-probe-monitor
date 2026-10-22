@@ -4,7 +4,7 @@ Libor Burian — exploratory pilot, 22 October 2026
 
 ## Abstract
 
-We adapt GRAFT to Qwen3-0.6B with two frozen reward-hacking monitors: an LLM-as-a-judge using the untouched learner checkpoint, and a downloaded embedding encoder with a trajectory probe. Each supplies flags to a separate GRAFT treatment; we compare detector quality and agentic behavior. Mitigation effectiveness is inconclusive. The primary comparison is incomplete or has ambiguous judgments. This report covers 2 completed training arms and 0 audited study episodes; 0 audit packets remain pending. The experiment is an exploratory single-seed pilot, not a powered confirmatory test.
+We adapt GRAFT to Qwen3-0.6B with two frozen reward-hacking monitors: an LLM-as-a-judge using the untouched learner checkpoint, and a downloaded embedding encoder with a trajectory probe. Each supplies flags to a separate GRAFT treatment; we compare detector quality and agentic behavior. Mitigation effectiveness is inconclusive. The primary comparison is incomplete or has ambiguous judgments. This report covers 3 completed training arms and 0 audited study episodes; 8 audit packets remain pending. The experiment is an exploratory single-seed pilot, not a powered confirmatory test.
 
 ## Context, motivation and introduction
 
@@ -28,7 +28,7 @@ Evaluate eight fixed locally runnable heldout Docker tasks through pinned Harbor
 
 ## Results
 
-Training coverage: no_intervention: 20 updates, complete=True; probe_graft: 20 updates, complete=True; qwen_judge_graft: 0 updates, complete=False; original_graft: 0 updates, complete=False; probe_filtering: 0 updates, complete=False; random_graft: 0 updates, complete=False; smoke: 1 updates, complete=True.
+Training coverage: no_intervention: 20 updates, complete=True; probe_graft: 20 updates, complete=True; qwen_judge_graft: 20 updates, complete=True; original_graft: 0 updates, complete=False; probe_filtering: 0 updates, complete=False; random_graft: 0 updates, complete=False; smoke: 1 updates, complete=True.
 
 Downloaded probe: 194/194 heldout trajectories across 99 tasks; 95 positive and 99 negative labels. auroc 0.497 (95% interval 0.424 to 0.562); precision 0.500 (95% interval 0.143 to 0.857); recall 0.042 (95% interval 0.010 to 0.084); fpr 0.040 (95% interval 0.010 to 0.081). Frozen cutoff 0.00096981943; calibration false positives 10/203.
 
@@ -53,6 +53,10 @@ One training seed, eight selected tasks, a much smaller model than the source pa
 ## Conclusion
 
 Mitigation effectiveness is inconclusive. Larger, multi-seed studies with measured task/seed variance and independently blinded audits are required for stronger conclusions.
+
+## Infrastructure recovery and coverage
+
+40 initial Docker setup failures were archived before any agent or verifier execution. The pinned runner's cleanup had removed the shared local images. A dated post-start amendment permits one uniform recovery of wholly unstarted jobs, preserving their results and hashes in setup_recovery.json. Actual model attempts, including timeouts, are never repeated. Rebuilt executable platform manifests match the original pre-study build logs; attestation/index changes and their evidence are recorded in image_identity_recovery.json. Repairs consume the unchanged deadline. The 120-second agent limit makes measured capability conditional on this local inference implementation and throughput.
 
 ## Appendix: prospective power and reproducibility
 

@@ -9,13 +9,34 @@ This report is generated from local manifests and frozen audits. See [protocol](
 |---|---:|---|---|
 | no_intervention | 20 | True | complete |
 | probe_graft | 20 | True | complete |
-| qwen_judge_graft | 0 | False | incomplete |
+| qwen_judge_graft | 20 | True | complete |
 | original_graft | 0 | False | incomplete |
 | probe_filtering | 0 | False | incomplete |
 | random_graft | 0 | False | incomplete |
 | smoke | 1 | True | complete |
 
-Pending blinded audits: 0.
+Pending blinded audits: 8.
+
+## Coverage and infrastructure
+
+```json
+{
+  "planned_study_episodes": 160,
+  "audited_study_episodes": 0,
+  "archived_setup_failures": 40,
+  "recovered_jobs": [
+    "no_intervention-both-plain",
+    "probe_graft-retain-elicited",
+    "probe_graft-retain-plain",
+    "base-both-elicited",
+    "base-both-plain"
+  ],
+  "pending_audit_packets": 8,
+  "note": "Unstarted or missing-result episodes are absent, never treated as nonhacking."
+}
+```
+
+Archived setup failures, when present, precede any model attempt. Their evidence and the dated recovery amendment remain separate from behavioral outcomes.
 
 ## Frozen detector validation
 
