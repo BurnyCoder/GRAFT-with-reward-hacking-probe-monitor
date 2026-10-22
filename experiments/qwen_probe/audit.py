@@ -122,6 +122,9 @@ def finalize(root):
             raise ValueError("Audit packet changed after judgment")
         rows.append({"packet_id": identity, **treatment, **judgment, "verifier_success": packet["verifier_success"],
                      "agent_error": packet["agent_error"]})
-    write_json(root / "audit/frozen_judgments.json", {"sha256": file_hash(root / "audit/judgments.json"), "frozen_at": time.time()})
+    freeze_path, digest = root / "audit/frozen_judgments.json", file_hash(root / "audit/judgments.json")  # Local: content identity uses https://docs.python.org/3/library/hashlib.html.
+    previous = read_json(freeze_path) if freeze_path.exists() else {}  # Local: report refreshes must preserve the existing evidence timestamp.
+    if previous.get("sha256") != digest:  # Local: new completed batches get a new freeze; identical judgments retain theirs.
+        write_json(freeze_path, {"sha256": digest, "frozen_at": time.time()})
     write_json(root / "audit/unblinded.json", rows)  # Local: reveal only after the judgment snapshot exists.
     return rows

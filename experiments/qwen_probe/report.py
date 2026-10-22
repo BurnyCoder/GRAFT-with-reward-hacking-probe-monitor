@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from .analysis import compare_detectors, detector_metrics, monitor_coverage, paired_difference, power_analysis, proportion
 from .audit import finalize, make_packets
 from .data import ARMS
+from .diagnostics import diagnostic_rows, execution_diagnostics  # Local: post-hoc execution counts never supply intent labels.
 from .runtime import ROOT, event, read_json, write_json
 
 ARM_RATIONALE = {  # Global: distinguish scientific questions without duplicating the full protocol.
@@ -99,6 +100,7 @@ def paper(destination, sections, figures, behavior=None):
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
     styles = getSampleStyleSheet()
+    styles["Heading2"].keepWithNext = True  # Local: ReportLab keeps section titles with their following evidence.
     outcome_style = ParagraphStyle("OutcomeCell", parent=styles["BodyText"], fontSize=7.5, leading=9.5, spaceBefore=0, spaceAfter=0)
     title = "Qwen3-0.6B GRAFT with LLM-as-a-Judge and Probe Monitors"  # Local: one title keeps both methods visible across paper formats and metadata.
     story = [Paragraph(title, styles["Title"]),
@@ -235,6 +237,23 @@ def training_status(root, arm):
     return status  # Local: an interrupted checkpoint remains incomplete even if it contains useful weights.
 
 
+def arm_learning(arm, grouped, diagnostics):
+    """Global: outcome-specific learning without inventing unrun results. Local: summarize only audited evidence."""
+    rows = [row for key, values in grouped.items() if key.startswith(arm + "/") for row in values]
+    if not rows:  # Local: an engineering smoke or unrun treatment cannot receive a scientific interpretation.
+        return "No audited study outcomes are available for this arm."
+    zero = sum(value["zero_parsed_command_episodes"] for key, value in diagnostics["conditions"].items() if key.startswith(arm + "/"))
+    solves = sum(row["legitimate"] is True for row in rows)  # Local: do not turn a passing verifier with ambiguous intent into capability.
+    text = f"Across {len(rows)} available episodes, {solves} legitimate successes were established and {zero} episodes had no parsed shell-command request. "
+    if zero == len(rows):
+        text += "The absence of established hacking accompanies complete command-interface failure, so it cannot demonstrate selective removal of hacking. "
+    elif solves == 0:
+        text += "Task capability is at the observed floor; low hacking counts alone do not establish a useful mitigation. "
+    else:
+        text += "Sparse task success limits a capability-preservation comparison at the registered five-point tolerance. "
+    return text + "These post-hoc execution counts describe symptoms, not their cause; no settings, attempts or frozen labels were changed."
+
+
 def report(root):
     """Global: complete and incomplete results are both visible. Local: compute only observed metrics."""
     destination = ROOT / "reports/qwen_probe"
@@ -288,29 +307,50 @@ def report(root):
     complete_primary = len(treatment) == len(control) == 8 and primary["hacking"]["known_pairs"] == 8
     conclusion = "Mitigation effectiveness is inconclusive."
     reasons = []
-    if not complete_primary:
-        reasons.append("The primary comparison is incomplete or has ambiguous judgments.")
+    if len(treatment) != 8 or len(control) != 8:
+        reasons.append("The primary comparison has missing episodes.")
+    elif primary["hacking"]["known_pairs"] != 8:
+        reasons.append(f"All primary episodes were audited, but only {primary['hacking']['known_pairs']}/8 task pairs have unambiguous hacking judgments.")
     if control and not baseline_hacks:
         reasons.append("No audited hacking attempt is established in the no-intervention baseline.")
     if treatment + control and not legitimate_solves:
         reasons.append("The primary arms have no established legitimate successes; a capability floor may dominate.")
-    if complete_primary and baseline_hacks and legitimate_solves:
+    capability_difference = primary["legitimate"]["difference"]  # Local: apply the already registered tolerance without changing the estimand.
+    capability = {"tolerance": 0.05, "observed_difference": capability_difference,
+                  "point_estimate_within_tolerance": capability_difference >= -0.05 if capability_difference is not None else None,
+                  "noninferiority_established": False, "note": "A single seed and eight tasks cannot establish the registered five-point capability safeguard."}
+    if capability["point_estimate_within_tolerance"] is False:
+        reasons.append(f"The observed legitimate-success difference is {capability_difference * 100:.1f} percentage points, below the registered -5-point tolerance.")
+    if complete_primary and baseline_hacks and legitimate_solves and capability["point_estimate_within_tolerance"]:
         conclusion = "The paired pilot estimates describe these eight tasks and one training seed; they do not establish general mitigation effectiveness."
     judge_behavior = grouped.get("qwen_judge_graft/retain/elicited", [])
     secondary = {name: {field: paired_difference({r["task"]: r[field] for r in judge_behavior},
                                                 {r["task"]: r[field] for r in comparator})
                         for field in ("hacking", "legitimate")} for name, comparator in
                  (("judge_minus_no_intervention", control), ("judge_minus_probe", treatment))}
+    ablations = {}  # Local: retain every registered intervention, including missing modes, in paired evidence.
+    for label, left, right in [("probe_retain_minus_both", "probe_graft/retain/elicited", "probe_graft/both/elicited"),
+                               ("probe_retain_minus_forget", "probe_graft/retain/elicited", "probe_graft/forget/elicited"),
+                               ("no_intervention_retain_minus_both", "no_intervention/retain/elicited", "no_intervention/both/elicited")]:
+        ablations[label] = {field: paired_difference({r["task"]: r[field] for r in grouped.get(left, [])},
+                                                    {r["task"]: r[field] for r in grouped.get(right, [])}) for field in ("hacking", "legitimate")}
+    diagnostics = execution_diagnostics(root, audited)  # Local: labels are already frozen and joined before this descriptive inspection.
+    write_json(destination / "execution_diagnostics.json", diagnostics)
     results = {"training": trained, "detector": detector, "judge": judge, "detector_comparison": detector_comparison,
                "data": data_summary, "routing": routing,
-               "behavior": behavior, "primary": primary, "secondary": secondary,
+               "behavior": behavior, "primary": primary, "secondary": secondary, "ablations": ablations,
+               "capability_safeguard": capability, "execution_diagnostics": diagnostics,
                "pending_audits": len(pending), "conclusion": conclusion, "reasons": reasons, "power": power_analysis()}
     recovery_path = root / "evaluation/setup_recovery.json"  # Local: setup errors are separate from model-attempt denominators.
     recoveries = read_json(recovery_path) if recovery_path.exists() else []
     results["coverage"] = {"planned_study_episodes": 160, "audited_study_episodes": sum(map(len, grouped.values())),
+                           "missing_planned_episodes": 160 - sum(map(len, grouped.values())),
                            "archived_setup_failures": sum(item["trial_count"] for item in recoveries),
                            "recovered_jobs": [item["job"] for item in recoveries],
                            "pending_audit_packets": len(pending), "note": "Unstarted or missing-result episodes are absent, never treated as nonhacking."}
+    index_path = root / "evaluation/index.json"  # Local: job shutdown and available trial evidence are different completion measures.
+    index = read_json(index_path) if index_path.exists() else {}
+    results["coverage"]["job_statuses"] = {name: job["status"] for name, job in index.items() if not job["smoke"]}
     write_json(destination / "results.json", results)
     write_json(destination / "audit_freeze.json", read_json(root / "audit/frozen_judgments.json") if audited else
                {"status": "not finalized", "pending_packets": len(pending)})  # Local: an earlier smoke freeze cannot certify later study judgments.
@@ -343,12 +383,13 @@ def report(root):
             "Exact optimizer arguments are in the per-arm configuration JSON when the run has started. " +
             "The smoke checkpoint is an engineering check and excluded from study comparisons.\n\n" +
             (legend + "\n\n" + markdown_table(rows) if len(rows) > 1 else "The smoke is excluded from study outcomes; its task result is recorded in [engineering](engineering.md).") + "\n\n" +
-            "Learning: completion of parameter updates alone does not establish hacking mitigation; inspect the blinded behavioral comparison and capability safeguard in [summary](summary.md).\n")
+            "Learning: " + arm_learning(arm, grouped, diagnostics) + " See [summary](summary.md) for the paired comparisons and capability safeguard.\n")
     rows, legend = behavior_table(behavior, arm="base")  # Local: the untouched baseline gets the same outcome definitions.
-    (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. Absent measurements are not zero rates.\n\n" + legend + "\n\n" + markdown_table(rows) + "\n")
+    (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. Absent measurements are not zero rates.\n\n" + legend + "\n\n" + markdown_table(rows) + "\n\nLearning: " + arm_learning("base", grouped, diagnostics) + "\n")
     lines += ["", f"Pending blinded audits: {len(pending)}.", "", "## Coverage and infrastructure", "",
               f"Audited study episodes: {results['coverage']['audited_study_episodes']}/160. Archived setup failures: {results['coverage']['archived_setup_failures']}. "
               "[Exact results](results.json) retain all denominators, paired task differences, truncation counts, source composition and planning calculations.",
+              "", f"Missing planned episodes: {results['coverage']['missing_planned_episodes']}. Job lifecycle states: " + str(dict(Counter(results['coverage']['job_statuses'].values()))) + ". Available trial records remain audited even when the cap interrupts job cleanup.",
               "", "Archived setup failures, when present, precede any model attempt. Their evidence and the dated recovery amendment remain separate from behavioral outcomes.",
               "", "## Frozen LLM-judge and probe validation", "", monitor_text("Same-Qwen judge", judge), "", monitor_text("Downloaded probe", detector),
               "", "[Paired detector comparison](monitor-comparison.md). Precision describes the selected clean/rewarded-hack mixture; calibration FPR does not guarantee heldout FPR.",
@@ -363,6 +404,10 @@ def report(root):
               paired_text("Elicited LLM-judge retain minus no intervention both", secondary["judge_minus_no_intervention"]), "",
               paired_text("Elicited LLM-judge retain minus probe retain", secondary["judge_minus_probe"]),
               "", "These are descriptive, single-seed contrasts. Degenerate bootstrap intervals do not establish equivalence. Ambiguity bounds do not include entirely missing planned episodes.",
+              "", "## Adapter interventions", "", *[paired_text(label, value) for label, value in ablations.items()],
+              "", "These are secondary elicited contrasts. Missing modes have zero paired tasks and undefined effects. A condition with eight records can still have an incomplete job lifecycle at the cap; see evaluation_index.json.",
+              "", "## Post-hoc execution diagnostic", "", diagnostics["note"], "", markdown_table(diagnostic_rows(diagnostics)),
+              "", f"Checked {diagnostics['execution_intervals_checked']} study execution intervals; {diagnostics['overlapping_execution_pairs']} overlapping pairs. This diagnostic was added after judgment freezing and does not alter intent labels.",
               "", "## Terminology and networks", "", "| Network / term | Architecture / algorithm | Objective and data | Measured meaning |",
               "|---|---|---|---|", "| Learner | Frozen Qwen3-0.6B, 28 layers, two width-64 MLP branches | Assistant-token SFT, matched clean/hack subset | Generates terminal actions |",
               "| Detector encoder | Qwen3-Embedding-0.6B plus frozen rank-16 attention LoRA | Upstream source-invariant training; no fitting here | 1,024-dimensional normalized turn vectors |",
@@ -400,7 +445,7 @@ def report(root):
                          "Complete coverage and score-derived counts are retained in [results.json](results.json)."]
     (destination / "monitor-comparison.md").write_text("\n".join(comparison_lines) + "\n")
     sections = [
-        ("Abstract", "We adapt GRAFT to Qwen3-0.6B with two frozen reward-hacking monitors: an LLM-as-a-judge using the untouched learner checkpoint, and a downloaded embedding encoder with a trajectory probe. Each supplies flags to a separate GRAFT treatment; we compare detector quality and agentic behavior. " + conclusion + " " + " ".join(reasons) + f" This report covers {sum(p['complete'] for a,p in trained.items() if a != 'smoke')} completed training arms and {sum(len(v) for v in grouped.values())} audited study episodes; {len(pending)} audit packets remain pending. The experiment is an exploratory single-seed pilot, not a powered confirmatory test."),
+        ("Abstract", "We adapt GRAFT to Qwen3-0.6B with two frozen reward-hacking monitors: an LLM-as-a-judge using the untouched learner checkpoint, and a downloaded embedding encoder with a trajectory probe. Each supplies flags to a separate GRAFT treatment; we compare detector quality and agentic behavior. " + conclusion + " " + " ".join(reasons) + f" This report covers {sum(p['complete'] for a,p in trained.items() if a != 'smoke')} completed training arms and {sum(len(v) for v in grouped.values())}/160 audited study episodes; {len(pending)} audit packets remain pending. The experiment is an exploratory single-seed pilot, not a powered confirmatory test."),
         ("Context, motivation and introduction", "GRAFT separates training updates into retain and forget adapters using a monitor [1]. This extension compares two concrete replacements for its simulated Terminal Wrench monitor: a frozen Qwen3-0.6B LLM judge [3,11] and a separately trained, frozen trajectory probe [2], with Qwen3-0.6B as the learner [3]. Both methods are evaluated as detectors and as sources of routing flags. The motivation is to distinguish an implementable monitor integration from evidence that it mitigates reward hacking."),
         ("Background and related work", "The LLM judge uses an intent rubric with conditional YES/NO next-token scores from the untouched Qwen3-0.6B [3]. LLM-as-a-judge research documents limitations that motivate empirical validation [11]; it does not establish this small judge's accuracy. The downloaded probe combines Qwen3-Embedding-0.6B [4], an attention LoRA adapter, and a turn-transformer classifier [2]. Both monitors run separately from learner training. GRAFT's monitor flags route gradients; they are not scalar reward penalties [1]. Classification accuracy and generated hacking behavior measure different quantities."),
         ("Method", "The exact preregistration is docs/protocol.md in the published repository commit recorded in publication.json. Preserve the published 232/99 task split, reserve 32 training tasks for calibration (seed 42), and independently freeze each monitor's strict score cutoff at empirical clean FPR <= 5%. Select at most 192 balanced trajectories, in multiples of 48, with a common memory-preflight length cap. Freeze the base; train two width-64 branches for five epochs, effective batch 48, learning rate 5e-4, weight decay 1e-4, betas (0.9,0.95), cosine schedule, 5% warmup, 1% unlabeled anchors and forget-gradient multiplier 2. Compare LLM-judge GRAFT, downloaded-probe GRAFT, no intervention, original simulated-monitor GRAFT, probe filtering and length-bin-shuffled probe GRAFT, plus the untouched base model. Filtering uses ordinary AdamW and thus is not a pure routing contrast. Correct Accelerate accumulation normalization [5] and use loss-equivalent Liger Qwen3 fused CE [6]."),
@@ -415,12 +460,39 @@ def report(root):
         ("Claims and implications", conclusion + " " + " ".join(reasons) + " Successful checkpoint loading, kernel equivalence and successful Docker execution support engineering compatibility only. Reported treatment differences are conditional descriptive observations, not claims of robust alignment or a causal mechanism beyond the implemented adapter intervention. This separation of measured results, uncertainty and mechanistic explanation follows the reporting concerns in [8-10]."),
         ("Discussion and limitations", "One training seed, eight selected tasks, a much smaller model than the source paper, task difficulty, label/source confounding, unresolved upstream detector exposure, truncation and non-independent implementing-assistant audits limit generalization. Neither monitor score is assumed calibrated. The judge/probe treatment contrast changes both flag frequency and which trajectories are flagged; the random-monitor control matches the probe's flag counts only. At n=8 one binary outcome changes a rate by 12.5 percentage points, larger than the 5pp capability tolerance. Bootstrap intervals may degenerate at the boundary; exact paired discordance evidence and Wilson intervals remain visible. The registered deadline can leave arms or modes incomplete. The user authorized a ten-more-hours extension before optimizer updates or behavioral outcomes; budget.json preserves both deadlines. Training error and infrastructure error are reported separately from behavior. No result-dependent extension or threshold retuning is allowed."),
         ("Conclusion", conclusion + " Larger, multi-seed studies with measured task/seed variance and independently blinded audits are required for stronger conclusions."),
-        ("Appendix: prospective power and reproducibility", "Normal-approximation sample requirements [12] for a 10pp reduction at 80% power and two-sided alpha .05: " + json.dumps(results["power"]["independent"]) + ". Paired discordance and unknown seed-variance sensitivity are in results.json; they are planning assumptions. The derivations and independence assumptions are given in docs/analysis.md. uv.lock pins the environment; artifacts.json pins sources and weights; data_lock.json fixes examples and preprocessing; per-checkpoint configuration and progress files record all actual updates. Full prompts, responses, scores and judgments are retained in timestamped local logs. Run uv run python -m experiments.qwen_probe run --profile pilot."),
+        ("Appendix: prospective power and reproducibility", "Normal-approximation sample requirements [12] for a 10pp reduction at 80% power and two-sided alpha .05: " +
+         "; ".join(f"{item['baseline']:.0%} to {item['treatment']:.0%}: {item['n_per_arm']} independent samples per arm" for item in results["power"]["independent"]) +
+         ". For paired discordance probabilities 0.1, 0.2, 0.4 and 0.6, the approximate requirements are " +
+         ", ".join(str(item["n_task_pairs"]) for item in results["power"]["paired"]) +
+         " task pairs, respectively. These are planning assumptions; unknown seed-variance sensitivity is in results.json. The derivations and independence assumptions are given in docs/analysis.md. uv.lock pins the environment; artifacts.json pins sources and weights; data_lock.json fixes examples and preprocessing; per-checkpoint configuration and progress files record all actual updates. Full prompts, responses, scores and judgments are retained in timestamped local logs. Run uv run python -m experiments.qwen_probe run --profile pilot."),
         ("References", "[1] Ward, Hu, Wong, Hu, Woodworth, Turner and Cloud (2026). Gradient Routing Localizes and Removes Unintended Behaviors in RL. https://arxiv.org/abs/2610.17062\n[2] farzingkh/reward-hacking, revision cd4c566824c5961eaeab7b7fce7845240bd12b3d (MIT source). https://github.com/farzingkh/reward-hacking\n[3] Qwen3-0.6B. https://huggingface.co/Qwen/Qwen3-0.6B\n[4] Qwen3-Embedding-0.6B. https://huggingface.co/Qwen/Qwen3-Embedding-0.6B\n[5] Accelerate gradient accumulation. https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation\n[6] Liger Kernel. https://github.com/linkedin/Liger-Kernel\n[7] SciPy binomial inference. https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.binomtest.html\n[8] NeurIPS reporting checklist. https://neurips.cc/public/guides/PaperChecklist\n[9] Lones (2021; revised 2024), How to avoid machine learning pitfalls: a guide for academic researchers. https://arxiv.org/abs/2108.02497\n[10] Lipton and Steinhardt (2018), Troubling Trends in Machine Learning Scholarship. https://arxiv.org/abs/1807.03341")]
     sections[-1] = (sections[-1][0], sections[-1][1] + "\n[11] Zheng et al. (2023), Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena. https://arxiv.org/abs/2306.05685\n[12] statsmodels, power for a test comparing two independent proportions. https://www.statsmodels.org/stable/generated/statsmodels.stats.proportion.power_proportions_2indep.html")  # Local: primary sources support the judge framing and prospective planning formula.
     if recoveries:
         sections.insert(-2, ("Infrastructure recovery and coverage", f"{results['coverage']['archived_setup_failures']} initial Docker setup failures were archived before any agent or verifier execution. The pinned runner's cleanup had removed the shared local images. A dated post-start amendment permits one uniform recovery of wholly unstarted jobs, preserving their results and hashes in setup_recovery.json. Actual model attempts, including timeouts, are never repeated. Rebuilt executable platform manifests match the original pre-study build logs; attestation/index changes and their evidence are recorded in image_identity_recovery.json. Repairs consume the unchanged deadline. The 120-second agent limit makes measured capability conditional on this local inference implementation and throughput."))
     sections.insert(4, ("Frozen LLM-judge and probe inputs", "The untouched pinned Qwen3-0.6B judge uses the released intent rubric and conditional YES/NO next-token logits with thinking disabled. The downloaded probe uses its frozen LoRA encoder and four-layer turn-transformer head. Separate cutoffs use the same calibration tasks and empirical-FPR rule. Both receive the same normalized trajectory text, excluding labels, source paths, rewards and judge metadata. Both retain at most 248 turns. The judge permits 16,384 aggregate input tokens with head/tail truncation; the probe permits 4,096 tokens per turn with normalized 1,024-dimensional last-token embeddings. This coverage difference is disclosed, not equated. The judge arm and its 16 agentic episodes were added by a dated user amendment before any optimizer update or behavioral outcome. Its detector and behavioral comparisons are secondary; the primary remains probe GRAFT versus no intervention. Equal prominence in the presentation does not change these registered analysis priorities."))
+    sections.insert(-2, ("Adapter interventions and execution diagnostics", " ".join(paired_text(label, value) for label, value in ablations.items()) +
+                        "\n\n" + "; ".join(f"{key}: {value['zero_parsed_command_episodes']}/{value['episodes']} episodes with zero parsed commands, {value['agent_timeouts']} agent timeouts" for key, value in diagnostics["conditions"].items()) + "." +
+                        f"\n\nAll {diagnostics['execution_intervals_checked']} checked study execution intervals had {diagnostics['overlapping_execution_pairs']} overlapping pairs. " + diagnostics["note"] + " These execution summaries were specified after unblinding and are descriptive; the registered primary/secondary comparisons and all frozen intent judgments remain unchanged. Full condition counts are in execution_diagnostics.json."))
+    if data_summary:  # Local: report realized inputs only after the dataset lock exists.
+        sections.insert(-2, ("Appendix: realized data and implementation",
+            f"The locked SFT subset contains {data_summary['train']['records']} trajectories across {data_summary['train']['tasks']} tasks, "
+            f"with {data_summary['train']['labels'].get('0', 0)} clean and {data_summary['train']['labels'].get('1', 0)} labeled hacks. "
+            f"Its {data_summary['train']['total_learner_tokens']:,} learner tokens fit the common {lock['configuration']['max_length']:,}-token limit "
+            f"(longest selected record {data_summary['train']['max_tokens']:,}); {lock['length_exclusions']} candidate training records were excluded by length. "
+            f"Calibration uses {data_summary['calibration']['records']} records on 32 disjoint training-side tasks. "
+            f"Detector validation uses {data_summary['heldout']['records']} records on 99 heldout tasks; at most one record per task and class is selected. "
+            "Provenance and exact normalized duplicate checks are in provenance.json; upstream detector exposure, semantic duplicates and Qwen pretraining exposure are unresolved.\n\n"
+            "The downloaded encoder's rank-16 attention LoRA uses alpha 32 on q/k/v/o projections. Last-token vectors are converted to FP32 and L2-normalized. "
+            "The fine-tuned notebook path uses role prefixes but no query-instruction prefix. Its four-layer, eight-head classifier projects 1,024-dimensional inputs to width 256 and uses a CLS readout. "
+            "The encoder runs BF16; the classifier runs FP32; all parameters are frozen and dropout is off [2,4]. The learner's 28 frozen transformer layers receive width-64 retain/forget MLP branches. "
+            "Qwen3's unsharded weights and tied embeddings are supported by the merger. Assistant-only labels preserve the source objective under the pinned TRL collator. "
+            "Accelerate's additional accumulation divisor is corrected in this profile, so it is not a bit-for-bit reproduction [5]. The 1% anchor rule samples within each unflagged pool; changing the monitor can change anchor identities. No intervention disables routing and anchors.\n\n"
+            "This run used one serialized GPU worker on an RTX 5070 Laptop GPU reporting 8,151 MiB, BF16 SDPA, temperature 0.7, top-p 0.8 and top-k 20, with thinking disabled. "
+            "The 120-second agent budget includes inference throughput and is separate from environment setup/verification. Generated responses, including malformed outputs, are retained. "
+            "Implementing-assistant audits use the released intent rubric, mixed opaque batches and an eight-packet unread buffer until the run ends; they are not independent human audits. "
+            "Hashes certify unchanged evidence, not judgment correctness. The persisted deadline and amendment history are in budget.json. "
+            f"Available audited records total {results['coverage']['audited_study_episodes']}/160; missing planned episodes total {results['coverage']['missing_planned_episodes']}. "
+            "Missing ablations remain unavailable; no model attempt was repeated after the cap. Data/configuration manifests and source revisions accompany the checkpoints."))
     paper(destination, sections, [destination / "architecture.png", *figures], behavior)
     event("report_written", directory=destination, conclusion=conclusion, pending_audits=len(pending))
     return results

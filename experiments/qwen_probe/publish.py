@@ -57,6 +57,11 @@ def publish(root):
     if not isinstance(namespace, str):
         raise RuntimeError("Could not determine the authenticated Hugging Face namespace")
     slug = ensure_collection(cli, namespace, env, root)  # Local: refresh the existing collection even after a headline change.
+    results_path = ROOT / "reports/qwen_probe/results.json"  # Local: cards share the report's actual coverage and conclusion.
+    results = read_json(results_path) if results_path.exists() else {}  # Local: early publication remains explicitly interim.
+    study_status = results.get("conclusion", "Study outcomes are not yet available.")
+    if "coverage" in results:
+        study_status += f" Audited episodes: {results['coverage']['audited_study_episodes']}/{results['coverage']['planned_study_episodes']}. " + " ".join(results.get("reasons", []))
     published = []
     for arm in ARMS:
         folder = root / "checkpoints" / arm
@@ -84,10 +89,15 @@ tags:
 language:
 - en
 ---
-# {arm}: Qwen3-0.6B GRAFT pilot adapter
+# {arm}: Qwen3-0.6B GRAFT with LLM-as-a-Judge and Probe Monitors
 
 Author: Libor Burian. **Exploratory artifact, single training seed; no established safety guarantee.**
 Completed planned training: {progress['complete']}; completed optimizer updates: {progress['steps']}.
+
+{study_status}
+
+The two monitor treatments use a frozen untouched Qwen3-0.6B LLM judge and a separately downloaded,
+frozen embedding/trajectory probe. They supply precomputed routing flags, never training rewards.
 
 This is a custom dual-MLP adapter state dictionary, not a PEFT LoRA checkpoint or a standalone language model.
 Use the frozen Qwen3-0.6B base revision and the pinned repository implementation. See `protocol.md`,
