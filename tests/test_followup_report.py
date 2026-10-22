@@ -63,6 +63,8 @@ def test_supplement_render_preserves_closed_pilot_artifacts(tmp_path, monkeypatc
     write_json(root / "evaluation/tasks.json", {"tasks": ["a"]})
     write_json(root / "audit/frozen_judgments.json", {"sha256": "toy-frozen"})
     write_json(root / "audit/session.json", {"original_pilot_outcomes_known": True})
+    write_json(root / "evaluation/setup_recovery.json", [{"trial_count": 8, "failure": "shim-upgrade"}])
+    write_json(root / "infrastructure.json", {"pre_upgrade_versions": "not captured"})
     write_json(root / "audit/packets/new.json", {"messages": [], "raw_model_calls": [], "missing_trajectory": False})
     write_json(root / "trial/result.json", {})
     original_report = tmp_path / "reports/qwen_probe"
@@ -78,4 +80,7 @@ def test_supplement_render_preserves_closed_pilot_artifacts(tmp_path, monkeypatc
     assert (original_report / "paper.pdf").read_bytes() == b"original paper stays intact"
     assert (original_report / "followup/paper.pdf").read_bytes().startswith(b"%PDF")
     assert read_json(original_report / "followup/audit_session.json")["original_pilot_outcomes_known"] is True
+    assert result["archived_setup_failures"] == 8
+    assert read_json(original_report / "followup/infrastructure.json")["pre_upgrade_versions"] == "not captured"
+    assert "8 setup failures" in (original_report / "followup/paper.md").read_text()
     assert "Exploratory" in (original_report / "followup/summary.md").read_text()

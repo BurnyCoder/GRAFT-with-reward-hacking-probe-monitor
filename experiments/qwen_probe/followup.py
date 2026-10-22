@@ -98,3 +98,22 @@ def require_closed(root):
     index = root / "evaluation/index.json"  # Local: exceptional shutdown can leave an unclosed job despite controller exit.
     if index.exists() and any(job["status"] == "running" for job in read_json(index).values()):
         raise ValueError("A follow-up evaluation job is still active")
+
+
+def recover_followup(pilot):
+    """Global: recover only the dated shim failure before any audit. Local: retain the fixed clock and model attempts."""
+    from .recovery import recover_setup_failures
+    from .tasks import ensure_task_images
+    root = prepare_followup(pilot)  # Local: recovery still requires every original source hash to match.
+    with (root / "controller.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)  # Local: do not race a running evaluator.
+        require_closed(root)
+        if any((root / "audit/packets").glob("*.json")):
+            raise ValueError("Recovery must precede all follow-up audit packets")
+        for name in ("publication", "controller"):
+            target = root / f"{name}_initial.json"
+            if not target.exists():
+                shutil.copy2(root / f"{name}.json", target)  # Local: resumption cannot erase the first collection's provenance.
+        verify_published(root)  # Local: the dated amendment and recovery implementation must be pushed first.
+        ensure_task_images(root)  # Local: unchanged executable images are mandatory after the host upgrade.
+        return recover_setup_failures(root, failure="shim-upgrade")

@@ -47,3 +47,16 @@ uv run python -m experiments.qwen_probe report --study ablation-followup
 ```
 
 Use the existing audit flags to save judgments with literal evidence and rationale. Files live under `artifacts/qwen_probe/ablation-followup/`; timestamped logs contain full inputs and outputs. Public results will live under `reports/qwen_probe/followup/`, including separate/combined coverage, a sourced PDF supplement, hashes and README links. Publish added evidence to the existing collection without changing checkpoint tensors. Preserve the original pilot paper unchanged; any combined paper must separate the later follow-up explicitly.
+
+## Infrastructure amendment — 22 October 2026, 13:06 UTC
+
+Before any follow-up behavioral evidence was inspected, eight trials in the third condition failed during Docker startup with the containerd shim bootstrap API mismatch. All eight lack agent execution, verifier results and trajectory files. The user reported running `sudo apt upgrade` during collection. The signature matches [containerd's compatibility check](https://github.com/containerd/containerd/blob/v2.4.2/pkg/shim/compat.go). By 13:03 UTC, containerd and Docker had restarted externally at 12:52:39 and 12:53:34 UTC respectively; subsequent containers launched. This assistant did not restart shared services. Observed versions after restart: Docker 29.9.2, containerd v2.4.2, runc 1.5.2. Pre-upgrade versions were not captured, so host-runtime equality across collection is unresolved even when task image hashes match.
+
+After the current controller closes, permit **one recovery only for a whole condition where every expected task failed with that exact shim signature before any agent or verifier execution**. Archive all original setup logs and hash their result files; retain the initial controller/publication records. Any actual model attempt, trajectory, different error, missing task or previous recovery makes the condition ineligible. Verify all original executable task image hashes before recovery. Push this amendment and its tests before recovery, then resume the same fixed evaluator, which skips all actual attempted conditions. Do not create audit packets until collection and any recovery have closed.
+
+The persisted follow-up deadline remains **2026-10-22 14:52:23.731 UTC**. Recovery uses its remaining time; it does not add tasks, training or model attempts beyond the planned 40. This is a disclosed infrastructure deviation from the initial no-retry wording, not a repetition of an unsuccessful model attempt. Record the upgrade and setup-failure count in reports and limitations. The original pilot remains untouched.
+
+```bash
+uv run python -m experiments.qwen_probe recover-setup --study ablation-followup
+uv run python -m experiments.qwen_probe evaluate --study ablation-followup
+```

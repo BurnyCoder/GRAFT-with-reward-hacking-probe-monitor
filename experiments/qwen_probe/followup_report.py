@@ -92,7 +92,7 @@ def comparison_figure(destination, comparisons):
 
 
 def report_followup(pilot):
-    """Global: report only after independent follow-up freezing. Local: write a supplement, not pilot replacements."""
+    """Global: report only after separate follow-up freezing. Local: write a supplement, not pilot replacements."""
     root = prepare_followup(pilot)  # Local: hash-check the original evidence again after collection.
     require_closed(root)
     if make_packets(root):
@@ -112,6 +112,9 @@ def report_followup(pilot):
     results["execution_diagnostics"] = diagnostics
     results["source_manifest"] = read_json(root / "manifest.json")
     results["budget"] = read_json(root / "budget.json")
+    recovery = root / "evaluation/setup_recovery.json"
+    results["setup_recovery"] = read_json(recovery) if recovery.exists() else []
+    results["archived_setup_failures"] = sum(item["trial_count"] for item in results["setup_recovery"])
     results["original_results_sha256"] = file_hash(ROOT / "reports/qwen_probe/results.json")
     results["audit_freeze"] = read_json(root / "audit/frozen_judgments.json")
     destination = ROOT / "reports/qwen_probe/followup"
@@ -128,6 +131,9 @@ def report_followup(pilot):
     for name in ("session", "integrity"):  # Local: retain the dated blinding procedure and pre-reveal proof when supplied by the auditor.
         if (root / f"audit/{name}.json").exists():
             shutil.copy2(root / f"audit/{name}.json", destination / f"audit_{name}.json")
+    for name in ("infrastructure", "publication_initial", "controller_initial"):
+        if (root / f"{name}.json").exists():
+            shutil.copy2(root / f"{name}.json", destination / f"{name}.json")  # Local: disclose host drift and retain evidence from before resumption.
     counts, behavior = results["coverage"], results["behavior"]
     condition_sources = markdown_table([["Deployment / prompt", "Cohort"]] +
                                       [[key, ", ".join(value)] for key, value in results["condition_cohorts"].items()])
@@ -138,10 +144,17 @@ def report_followup(pilot):
     bounds = ("Each contrast pairs the same task within one prompt condition. Intervals use known pairs; unknown intent remains in bounds. "
               "The six comparisons are exploratory and unadjusted. A zero-width bootstrap is not evidence of equivalence. "
               "One seed and eight tasks do not support a general five-point capability guarantee.")
+    infrastructure = (f"The dated infrastructure amendment archived {results['archived_setup_failures']} setup failures before any agent or verifier execution. "
+                      "The user upgraded host packages during collection; containerd shim API skew temporarily prevented container startup. "
+                      "After services restarted externally, recovery required unchanged executable image hashes, no actual prior model attempt, "
+                      "one recovery per wholly unstarted condition and the same persisted deadline. Pre-upgrade host versions were not captured; "
+                      "host-runtime equality is unresolved. Initial publication/controller evidence and result hashes remain available. "
+                      "See followup-protocol.md and infrastructure.json.") if results["setup_recovery"] else "No setup recovery was performed."
     sections = [
         ("Abstract", "This supplement completes previously unrun adapter interventions for the Qwen3-0.6B GRAFT pilot with frozen LLM-as-a-judge and downloaded probe monitors [1,2]. " + coverage + " " + results["conclusion"]),
         ("Context, motivation and prior knowledge", "The original pilot had already been audited, unblinded and published when the user authorized finishing the outstanding work. Its primary result, capability failure and frozen judgments remain unchanged. The new collection evaluates existing downloaded-probe and no-intervention checkpoints; it introduces no trained model or detector. The goal is descriptive adapter-intervention coverage, not a new confirmatory mitigation claim [3,4]."),
-        ("Method and stopping rule", "Five previously unattempted conditions reuse the fixed eight tasks and saved checkpoints: probe/both plain; probe/forget elicited and plain; no-intervention/retain elicited and plain. The probe/both elicited condition is inherited from the original cohort. Model/tokenizer files, original evidence and reused adapter states are hash-locked. Sampling seed 2002, non-thinking mode, BF16 SDPA, temperature 0.7, top-p 0.8, top-k 20, context 16,384, maximum 16 turns and 120 seconds per agent remain fixed. One serialized worker runs until the five conditions finish or the separate persisted three-hour cap expires. No original attempt or failed follow-up attempt is repeated. The protocol and evaluator were pushed before this collection; followup-protocol.md states the exact scope."),
+        ("Method and stopping rule", "Five previously unattempted conditions reuse the fixed eight tasks and saved checkpoints: probe/both plain; probe/forget elicited and plain; no-intervention/retain elicited and plain. The probe/both elicited condition is inherited from the original cohort. Model/tokenizer files, original evidence and reused adapter states are hash-locked. Sampling seed 2002, non-thinking mode, BF16 SDPA, temperature 0.7, top-p 0.8, top-k 20, context 16,384, maximum 16 turns and 120 seconds per agent remain fixed. One serialized worker runs until the five conditions finish or the separate persisted three-hour cap expires. No actual model attempt is repeated. The protocol and evaluator were pushed before this collection; followup-protocol.md states the exact scope."),
+        ("Infrastructure deviation", infrastructure),
         ("Audit and statistical analysis", "All new deployments close before one mixed opaque audit batch is created. Full raw responses, commands, observations, task instructions and verifier evidence are judged with the original intent rubric. Every new judgment is saved and fingerprinted before treatment identities are joined. The implementing assistant knows the original outcomes and design; this is neither an independent nor fully naive audit. " + bounds + " Wilson intervals and paired bootstrap/exact discordance calculations reuse the original analysis implementation [5]."),
         ("Results", coverage + "\n\n" + paired),
         ("Execution diagnostics", "; ".join(f"{key}: {value['zero_parsed_command_episodes']}/{value['episodes']} zero-command episodes; {value['agent_timeouts']} timeouts" for key, value in diagnostics["conditions"].items()) + ". " + diagnostics["note"]),
@@ -156,6 +169,7 @@ def report_followup(pilot):
              "[PDF supplement](paper.pdf) and [complete numeric evidence](results.json).", "", "## Paired comparisons", "", bounds, "", paired,
              "", "## Combined grid with cohort provenance", "", condition_sources, "", legend, "", markdown_table(table),
              "", "## Follow-up execution diagnostic", "", diagnostics["note"], "", markdown_table(diagnostic_rows(diagnostics)),
+             "", "## Infrastructure deviation", "", infrastructure,
              "", "![Exploratory paired differences](ablations.png)"]
     (destination / "summary.md").write_text("\n".join(lines) + "\n")
     for arm in ("probe_graft", "no_intervention"):
