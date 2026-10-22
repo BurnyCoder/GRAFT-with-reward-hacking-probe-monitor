@@ -2,8 +2,9 @@
   "training": {
     "no_intervention": {
       "complete": false,
-      "steps": 0,
-      "status": "not run",
+      "steps": 13,
+      "status": "updates logged; final checkpoint not recorded",
+      "checkpoint_saved": false,
       "learning_curve": [
         {
           "time": 1792627981.8860853,
@@ -64,33 +65,173 @@
           "train/unclassified/loss_mean_local": 1.0310663344959419,
           "gr/c_forget": 1.0,
           "gr/forget_realized_step": 0.48642095923423767
+        },
+        {
+          "time": 1792628462.7577262,
+          "step": 5,
+          "train/lr": 0.00046986843780162223,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 1.25,
+          "train/unclassified/loss_mean_local": 0.9367765548328558,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.4091736972332001
+        },
+        {
+          "time": 1792628574.6005182,
+          "step": 6,
+          "train/lr": 0.00044728512734909845,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 1.5,
+          "train/unclassified/loss_mean_local": 0.9890121519565582,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.37291204929351807
+        },
+        {
+          "time": 1792628685.1856387,
+          "step": 7,
+          "train/lr": 0.0004193203929064353,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 1.75,
+          "train/unclassified/loss_mean_local": 1.063420816635092,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.3484218716621399
+        },
+        {
+          "time": 1792628811.4189541,
+          "step": 8,
+          "train/lr": 0.00038673703953060677,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 2.0,
+          "train/unclassified/loss_mean_local": 0.9310636259615421,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.3229994773864746
+        },
+        {
+          "time": 1792628917.6229565,
+          "step": 9,
+          "train/lr": 0.0003504238561632424,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 2.25,
+          "train/unclassified/loss_mean_local": 0.9427009591211876,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.318245530128479
+        },
+        {
+          "time": 1792629030.1150548,
+          "step": 10,
+          "train/lr": 0.0003113713717851998,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 2.5,
+          "train/unclassified/loss_mean_local": 0.9366198231776556,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.30767735838890076
+        },
+        {
+          "time": 1792629154.0429685,
+          "step": 11,
+          "train/lr": 0.00027064483636808314,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 2.75,
+          "train/unclassified/loss_mean_local": 0.8876190514614185,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.29810646176338196
+        },
+        {
+          "time": 1792629271.611741,
+          "step": 12,
+          "train/lr": 0.00022935516363191695,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 3.0,
+          "train/unclassified/loss_mean_local": 0.8551238601406416,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.2922822833061218
+        },
+        {
+          "time": 1792629380.4948711,
+          "step": 13,
+          "train/lr": 0.00018862862821480023,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 3.25,
+          "train/unclassified/loss_mean_local": 0.8633647281676531,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.2956225275993347
         }
       ]
     },
     "probe_graft": {
       "complete": false,
       "steps": 0,
-      "status": "not run"
+      "status": "not run",
+      "checkpoint_saved": false
     },
     "qwen_judge_graft": {
       "complete": false,
       "steps": 0,
-      "status": "not run"
+      "status": "not run",
+      "checkpoint_saved": false
     },
     "original_graft": {
       "complete": false,
       "steps": 0,
-      "status": "not run"
+      "status": "not run",
+      "checkpoint_saved": false
     },
     "probe_filtering": {
       "complete": false,
       "steps": 0,
-      "status": "not run"
+      "status": "not run",
+      "checkpoint_saved": false
     },
     "random_graft": {
       "complete": false,
       "steps": 0,
-      "status": "not run"
+      "status": "not run",
+      "checkpoint_saved": false
     },
     "smoke": {
       "steps": 1,
@@ -137,6 +278,7 @@
         "kappa": 2.0,
         "no_routing": false
       },
+      "checkpoint_saved": true,
       "learning_curve": [
         {
           "time": 1792627252.8251932,

@@ -28,7 +28,7 @@ Evaluate eight fixed locally runnable heldout Docker tasks through pinned Harbor
 
 ## Results
 
-Training coverage: no_intervention: 0 updates, complete=False; probe_graft: 0 updates, complete=False; qwen_judge_graft: 0 updates, complete=False; original_graft: 0 updates, complete=False; probe_filtering: 0 updates, complete=False; random_graft: 0 updates, complete=False; smoke: 1 updates, complete=True.
+Training coverage: no_intervention: 13 updates, complete=False; probe_graft: 0 updates, complete=False; qwen_judge_graft: 0 updates, complete=False; original_graft: 0 updates, complete=False; probe_filtering: 0 updates, complete=False; random_graft: 0 updates, complete=False; smoke: 1 updates, complete=True.
 
 Downloaded probe: 194/194 heldout trajectories across 99 tasks; 95 positive and 99 negative labels. auroc 0.497 (95% interval 0.424 to 0.562); precision 0.500 (95% interval 0.143 to 0.857); recall 0.042 (95% interval 0.010 to 0.084); fpr 0.040 (95% interval 0.010 to 0.081). Frozen cutoff 0.00096981943; calibration false positives 10/203.
 
