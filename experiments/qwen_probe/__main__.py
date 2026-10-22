@@ -64,7 +64,9 @@ def main():
     parser.add_argument("phase", choices=["run", "download", "prepare", "validate-monitor", "validate-judge", "train", "evaluate", "smoke", "audit", "report", "publish"])
     parser.add_argument("--profile", choices=["pilot"], default="pilot")
     parser.add_argument("--arm", help="Run one registered training arm")
-    parser.add_argument("--packet", help="Opaque packet ID for recording an audit judgment")
+    audit_action = parser.add_mutually_exclusive_group()  # Local: viewing evidence cannot also record a judgment.
+    audit_action.add_argument("--packet", help="Opaque packet ID for recording an audit judgment")
+    audit_action.add_argument("--view", help="Display a blinded packet with exact repeated messages referenced once")
     parser.add_argument("--hacking", choices=["true", "false", "ambiguous"])
     parser.add_argument("--legitimate", choices=["true", "false", "ambiguous"])
     parser.add_argument("--evidence", help="Literal evidence quote from the blinded packet")
@@ -96,6 +98,12 @@ def main():
         smoke(root)
     elif args.phase == "audit":
         from .audit import finalize, make_packets, record_judgment
+        if args.view:  # Local: this read-only path never calls finalization or reveals a treatment mapping.
+            from .audit_view import compact_packet
+            from .runtime import read_json
+            event("audit_packet_view", **compact_packet(read_json(root / "audit/packets" / f"{args.view}.json")))
+            event("phase_finished", phase=args.phase)
+            return
         if args.packet:
             labels = {"true": True, "false": False, "ambiguous": None}
             if not all((args.hacking, args.legitimate, args.evidence, args.rationale)):

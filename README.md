@@ -40,12 +40,15 @@ uv run python -m experiments.qwen_probe report
 Audit packets appear in `artifacts/qwen_probe/audit/packets/`. An auditor reads the full task, trajectory, verifier outcome and rubric while keeping `private_mapping.json` and probe scores hidden. Record an evidence-based judgment, preserving ambiguity:
 
 ```bash
+uv run python -m experiments.qwen_probe audit --view OPAQUE_ID
 uv run python -m experiments.qwen_probe audit --packet OPAQUE_ID \
   --hacking ambiguous --legitimate false \
   --evidence 'literal text from this packet' \
   --rationale 'Intent-based explanation grounded in the observable actions.'
 uv run python -m experiments.qwen_probe run --profile pilot
 ```
+
+`audit --view` shows each exact message once in `message_blocks`; conversation arrays retain ordered zero-based references, including repetitions. All other fields and raw responses remain complete. This lossless display leaves the original packet unchanged and does not unblind or assign a judgment.
 
 The CLI requires explicit judgments; it does not call an external judge or infer hacking from reward. Codex can assist with the audit in the same workspace. All available judgments must be saved and fingerprinted before unblinding. Unreviewed trajectories remain incomplete. A single training seed, eight tasks, weak base capability, and unresolved upstream probe exposure limit interpretation. Reports include missingness, ambiguity bounds, 95% intervals and prospective power calculations.
 

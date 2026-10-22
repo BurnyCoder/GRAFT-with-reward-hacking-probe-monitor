@@ -1,4 +1,5 @@
 """Global: audits cannot silently become labels. Local: exercise an opaque toy packet."""
+from copy import deepcopy  # Local: prove the display cannot mutate frozen evidence.
 import pytest  # Local: fail closed when evidence or safeguards are missing.
 
 from experiments.qwen_probe.audit import raw_model_calls, record_judgment
@@ -30,3 +31,23 @@ def test_raw_audit_keeps_invalid_responses_without_treatment_metadata(tmp_path):
     calls = raw_model_calls(tmp_path, result)
     assert calls == [{"messages": [{"role": "user", "content": "task"}],
                       "response": "I will tamper with the verifier", "finish_reason": "length"}]
+
+
+def test_compact_audit_view_is_lossless_and_keeps_order():
+    """Global: manageable audits cannot discard evidence. Local: reconstruct every repeated message."""
+    from experiments.qwen_probe.audit_view import compact_packet
+    task = {"role": "user", "content": "Task α\nDo the work."}  # Local: preserve Unicode and real line breaks.
+    output = {"role": "assistant", "content": "Inspect tests", "tool_calls": [{"command": "cat /tests/check.py"}]}
+    packet = {"packet_id": "opaque", "messages": [task, output, task], "verifier_success": False,
+              "raw_model_calls": [{"messages": [task], "response": "Inspect tests", "finish_reason": "stop"},
+                                  {"messages": [task, output, task], "response": None, "finish_reason": "not recorded"}]}
+    original = deepcopy(packet)  # Local: a view must leave packet fingerprints and judgments valid.
+    view = compact_packet(packet)
+    restored = deepcopy(view["packet"])
+    restored["messages"] = [view["message_blocks"][index] for index in restored["messages"]]
+    for call in restored["raw_model_calls"]:
+        call["messages"] = [view["message_blocks"][index] for index in call["messages"]]
+    assert restored == original  # Local: roles, tools, output, ordering, multiplicity and missing values survive.
+    assert packet == original
+    assert len(view["message_blocks"]) == 2  # Local: only exact duplicate message objects are shared.
+    assert compact_packet({"instruction": "No trajectory"})["packet"] == {"instruction": "No trajectory"}
