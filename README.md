@@ -1,6 +1,6 @@
-# Qwen3-0.6B GRAFT with a frozen reward-hacking probe
+# Qwen3-0.6B GRAFT with LLM-as-a-Judge and Probe Monitors
 
-This research extension adapts [GRAFT's Terminal Wrench SFT experiment](https://arxiv.org/abs/2610.17062) from Qwen3-32B to **Qwen/Qwen3-0.6B**. A separately frozen **Qwen3-Embedding-0.6B LoRA encoder and turn-transformer probe** from [farzingkh/reward-hacking](https://github.com/farzingkh/reward-hacking) classifies trajectories before training. Its flags select retain/forget pools; its scores are not rewards. The original configurations and results remain in [sft](sft/README.md), [rl](rl/README.md), and the [original project overview](README.upstream.md).
+This research extension adapts [GRAFT's Terminal Wrench SFT experiment](https://arxiv.org/abs/2610.17062) from Qwen3-32B to **Qwen/Qwen3-0.6B**, comparing two frozen reward-hacking monitors: **LLM-as-a-judge using the untouched Qwen3-0.6B**, and a **downloaded Qwen3-Embedding-0.6B LoRA encoder with a turn-transformer probe** from [farzingkh/reward-hacking](https://github.com/farzingkh/reward-hacking). Each monitor classifies trajectories before training and supplies flags to its own GRAFT arm. The comparison measures both detection quality and generated behavior. Flags select retain/forget pools; scores are not rewards. The original configurations and results remain in [sft](sft/README.md), [rl](rl/README.md), and the [original project overview](README.upstream.md).
 
 ## Method and use
 
@@ -75,6 +75,8 @@ flowchart LR
 ![Frozen probe and same-Qwen judge validation with task-bootstrap intervals](reports/qwen_probe/detector.png)
 
 The [monitor comparison](reports/qwen_probe/monitor-comparison.md) reports paired detection differences separately from behavioral mitigation. The [engineering report](reports/qwen_probe/engineering.md) records numerical checks and the audited real smoke, including its agent timeout and failed task outcome.
+
+[Analysis notes](docs/analysis.md) derive the training objective, paired estimands, ambiguity bounds and prospective task/seed sample requirements. They explain why this small pilot cannot establish a five-percentage-point noninferiority guarantee or general mitigation effectiveness.
 
 | Location | Contents |
 |---|---|

@@ -1,6 +1,8 @@
 {
-  "commit": "62962d4872d94bde4a0e40b321c52504887a82ab",
+  "commit": "85345ea9eb745996201c402ae24093f5b1f570c3",
   "remote_branches": [
-    "origin/feat/qwen06-reward-probe"
+    "origin/HEAD -> origin/main",
+    "  origin/feat/qwen-probe-pilot-results",
+    "  origin/main"
   ]
 }
