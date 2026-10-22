@@ -36,7 +36,7 @@ from collections import Counter
 
 TW_ROOT = Path(os.environ.get("GRAFT_TW_ROOT", "/workspace/terminal-wrench"))
 OUT_DIR = Path(os.environ.get("GRAFT_SFT_DATA_DIR", "/workspace/training/data"))
-OUT_DIR.mkdir(parents=True, exist_ok=True)
+CONVERSION_VERSION = "atif-terminus-completion-v2"  # Global: separate corrected targets from historical caches.
 
 CUTOFF_LEN = 32_768
 
@@ -91,7 +91,7 @@ def atif_to_messages(traj: dict) -> list[dict]:
     """Convert one ATIF trajectory to a TRL-style messages list.
 
     Each agent step becomes:
-      assistant message: terminus-2 JSON {analysis, plan, commands}
+      assistant message: terminus-2 JSON {analysis, plan, commands, task_complete?}
       user message:      observation content (if non-empty)
     """
     steps = traj.get("steps", [])
@@ -110,18 +110,21 @@ def atif_to_messages(traj: dict) -> list[dict]:
         if step.get("source") != "agent":
             continue
         analysis, plan = split_analysis_plan(step.get("message", ""))
-        commands = [tc.get("arguments", {}) for tc in step.get("tool_calls", [])]
+        calls = step.get("tool_calls", [])  # Local: ATIF stores shell actions and completion as distinct tools.
+        if any(tc.get("function_name") not in {"bash_command", "mark_task_complete"} for tc in calls):
+            raise ValueError("Unsupported ATIF tool; cannot preserve Terminus shell/completion semantics")
+        commands = [tc.get("arguments", {}) for tc in calls if tc.get("function_name") == "bash_command"]
         # Reconstruct the terminus-2 JSON the model actually emits.
         response_obj: dict = {
             "analysis": analysis,
             "plan": plan,
             "commands": commands,
         }
-        # task_complete is sometimes present (final step). Include when the
-        # trajectory is clearly ending on this step (last step and reward looks
-        # like it was evaluated). We can't always infer this, so leave it out
-        # unless ATIF records it explicitly.
-        if "task_complete" in step:
+        # Global: recover the source termination signal, never infer it from reward or position.
+        # Source: https://github.com/harbor-framework/harbor/blob/290ab985edc6915dd60fb1a0d369fedf10d213a1/src/harbor/agents/terminus_2/terminus_2.py#L1482
+        if any(tc.get("function_name") == "mark_task_complete" for tc in calls):
+            response_obj["task_complete"] = True  # Local: completion arguments are not shell commands.
+        elif "task_complete" in step:  # Local: preserve explicitly recorded legacy completion fields.
             response_obj["task_complete"] = step["task_complete"]
         assistant_content = json.dumps(response_obj, indent=2, ensure_ascii=False)
         messages.append({"role": "assistant", "content": assistant_content})
@@ -185,6 +188,7 @@ def iter_trajectories():
 
 
 def main():
+    OUT_DIR.mkdir(parents=True, exist_ok=True)  # Local: create outputs only on execution, not a read-only converter import.
     from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained("Qwen/Qwen3-8B", trust_remote_code=True)
 

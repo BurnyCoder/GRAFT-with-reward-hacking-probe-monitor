@@ -4,12 +4,11 @@ Sources: sft/scripts/data_prep.py and the frozen decisions in docs/protocol.md.
 """
 import collections  # Local: exclusions and provenance counts.
 import json  # Local: existing trainer's JSONL interchange.
-import os  # Local: configure upstream module before importing it.
 import random  # Local: score-blind monitor control.
-import sys  # Local: reuse the released SFT modules.
 from pathlib import Path  # Local: versioned task split.
 
 from .download import MANIFEST  # Local: model/data provenance for fingerprints.
+from .conversion import conversion_identity, require_current_conversion, upstream_conversion, validate_targets
 from .protocol import partition_tasks, select_balanced, shuffled_flags
 from .runtime import ROOT, event, fingerprint, read_json, write_json
 from .detector.preprocess import VERSION, normalize_messages, trajectory_messages
@@ -17,17 +16,10 @@ from .detector.preprocess import VERSION, normalize_messages, trajectory_message
 ARMS = ("no_intervention", "probe_graft", "qwen_judge_graft", "original_graft", "probe_filtering", "random_graft")
 
 
-def upstream_conversion(root):
-    """Global: avoid a second data converter. Local: point legacy defaults at this workspace."""
-    os.environ["GRAFT_TW_ROOT"] = str(ROOT / "sft/third_party/terminal-wrench")
-    os.environ["GRAFT_SFT_DATA_DIR"] = str(root / "data")
-    sys.path.insert(0, str(ROOT / "sft"))  # Local: released package is named scripts.
-    from scripts import data_prep  # Local: import only after workspace paths are set.
-    return data_prep
-
-
 def inventory(root):
     """Global: label-independent preprocessing. Local: tokenize and identify duplicate inputs."""
+    if (root / "data/inventory.json").exists() or (root / "data/lock.json").exists():
+        raise ValueError("Inventory already exists; preserve it and use a separate GRAFT_ARTIFACTS directory")
     from transformers import AutoTokenizer  # Local: use exact learner tokenizer for exclusions.
     converter = upstream_conversion(root)
     from scripts.gr.loader import _patch_chat_template_for_assistant_mask  # Local: same template as SFT.
@@ -49,6 +41,7 @@ def inventory(root):
         if len(messages) < 2:
             excluded["no_assistant"] += 1
             continue
+        target_checks = validate_targets(trajectory, messages)  # Local: fail before tokenization if shell/completion semantics are invalid.
         monitor_messages = trajectory_messages(trajectory)
         if monitor_messages and monitor_messages[0]["role"] == "user":
             monitor_messages[0]["content"] = converter.strip_red_team(monitor_messages[0]["content"])
@@ -65,6 +58,7 @@ def inventory(root):
                      "label": int(classification in converter.HACK_CLASSES), "classification": classification,
                      "source": str(path.relative_to(ROOT)), "source_model": source_model,
                      "tokens": len(encoded["input_ids"]), "messages": messages, "turns": turns,
+                     "sft_target_checks": target_checks,  # Local: disclose nonfatal source warnings alongside preserved commands.
                      "content_hash": fingerprint(turns)})  # Local: metadata never concatenated with turns.
     heldout_hashes = {r["content_hash"] for r in rows if r["partition"] != "train"}
     seen, unique = set(), []
@@ -78,6 +72,7 @@ def inventory(root):
             unique.append(row)
             seen.add(key)
     provenance = {"source_revision": "d8a29613235a0ef56a8b70b3142626a533da28c2", "preprocessing": VERSION,
+                  "sft_conversion": conversion_identity(root),  # Local: monitor normalization is a separate transformation.
                   "train_tasks": train, "calibration_tasks": calibration, "heldout_tasks": evaluation,
                   "exclusions": dict(excluded), "counts": dict(collections.Counter(r["partition"] for r in unique)),
                   "upstream_probe_exposure": "Unresolved: released notebook names TRACE, MALT, Realistic Reward Hacks and BJS corpus; complete training identifiers unavailable"}
@@ -87,8 +82,17 @@ def inventory(root):
     return unique
 
 
+def dataset_fingerprint(root, rows, configuration):
+    """Global: bind caches to actual training text. Local: include converted targets as well as monitor hashes."""
+    return fingerprint({"model": MANIFEST["learner"], "tokenizer": read_json(root / "downloads.json")["model_files"]["learner"],
+                        "data": [(r["id"], r["content_hash"], fingerprint(r["messages"])) for r in rows],
+                        "preprocessing": VERSION, "sft_conversion": require_current_conversion(root),
+                        "configuration": configuration})  # Local: recompute target hashes instead of trusting cached ones.
+
+
 def fix_dataset(root, max_length):
     """Global: shared data lock. Local: select before reading any monitor scores."""
+    conversion = require_current_conversion(root)  # Local: reject historical conversion before creating a new lock.
     rows = read_json(root / "data/inventory.json")
     eligible = [r for r in rows if r["partition"] == "train" and r["tokens"] <= max_length]
     selected = select_balanced(eligible)
@@ -100,10 +104,8 @@ def fix_dataset(root, max_length):
     calibration = [r for r in rows if r["partition"] == "calibration"]
     configuration = {"max_length": max_length, "seed": 42, "batch": 48, "epochs": 5,
                      "width": 64, "lr": 5e-4, "anchors": 0.01, "kappa": 2}
-    identity = fingerprint({"model": MANIFEST["learner"], "tokenizer": read_json(root / "downloads.json")["model_files"]["learner"],
-                            "data": [(r["id"], r["content_hash"]) for r in selected + calibration + heldout],
-                            "preprocessing": VERSION, "configuration": configuration})
-    lock = {"fingerprint": identity, "configuration": configuration, "train": [r["id"] for r in selected],
+    identity = dataset_fingerprint(root, selected + calibration + heldout, configuration)
+    lock = {"fingerprint": identity, "sft_conversion": conversion, "configuration": configuration, "train": [r["id"] for r in selected],
             "calibration": [r["id"] for r in calibration], "heldout": [r["id"] for r in heldout],
             "length_exclusions": sum(r["partition"] == "train" and r["tokens"] > max_length for r in rows)}
     path = root / "data/lock.json"
@@ -116,8 +118,12 @@ def fix_dataset(root, max_length):
 
 def write_pools(root):
     """Global: same records, different flags. Local: emit existing trainer's retain/forget files."""
+    require_current_conversion(root)  # Local: never regenerate historical pools with a corrected converter identity.
     lock = read_json(root / "data/lock.json")
     by_id = {r["id"]: r for r in read_json(root / "data/inventory.json")}
+    frozen = [by_id[i] for partition in ("train", "calibration", "heldout") for i in lock[partition]]
+    if dataset_fingerprint(root, frozen, lock["configuration"]) != lock["fingerprint"]:
+        raise ValueError("Dataset changed after it was frozen")  # Local: block edited target text before any pool is overwritten.
     rows = [by_id[identity] for identity in lock["train"]]
     scores = read_json(root / "monitor/scores.json")
     threshold = read_json(root / "monitor/threshold.json")["threshold"]

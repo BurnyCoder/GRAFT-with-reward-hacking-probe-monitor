@@ -3,6 +3,7 @@ import subprocess  # Local: idempotent pinned Harbor patch application.
 import sys  # Local: isolated GPU memory preflight.
 
 from .data import fix_dataset, inventory
+from .conversion import require_current_conversion  # Local: fail on legacy caches before downloads or GPU preflight.
 from .download import download
 from .runtime import ROOT, deadline, execute, read_json
 from .tasks import select_tasks
@@ -10,6 +11,7 @@ from .tasks import select_tasks
 
 def prepare(root):
     """Global: data decisions precede monitor outcomes. Local: use outcome-free memory fallback."""
+    require_current_conversion(root)  # Local: historical checkpoints require their historical inputs, never relabeled corrected ones.
     download(root)  # Local: install/download time remains outside the six-hour experiment clock.
     harbor = ROOT / "sft/third_party/harbor"
     patch = ROOT / "sft/scripts/eval/patches/harbor_verifier_on_ctx_overflow.patch"
