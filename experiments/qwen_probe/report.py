@@ -254,7 +254,11 @@ def report(root):
                "data": data_summary, "routing": routing,
                "behavior": behavior, "primary": primary, "secondary": secondary,
                "pending_audits": len(pending), "conclusion": conclusion, "reasons": reasons, "power": power_analysis()}
+    recovery_path = root / "evaluation/setup_recovery.json"  # Local: setup errors are separate from model-attempt denominators.
+    recoveries = read_json(recovery_path) if recovery_path.exists() else []
     results["coverage"] = {"planned_study_episodes": 160, "audited_study_episodes": sum(map(len, grouped.values())),
+                           "archived_setup_failures": sum(item["trial_count"] for item in recoveries),
+                           "recovered_jobs": [item["job"] for item in recoveries],
                            "pending_audit_packets": len(pending), "note": "Unstarted or missing-result episodes are absent, never treated as nonhacking."}
     write_json(destination / "results.json", results)
     figures = result_figures(destination, results)
@@ -262,6 +266,8 @@ def report(root):
                            ("monitor/threshold.json", "threshold.json"), ("evaluation/tasks.json", "tasks.json"),
                            ("judge/threshold.json", "judge_threshold.json"), ("judge/manifest.json", "judge_manifest.json"),
                            ("data/arms.json", "routing_flags.json"),
+                           ("evaluation/setup_recovery.json", "setup_recovery.json"),
+                           ("evaluation/image_identity_recovery.json", "image_identity_recovery.json"),
                            ("budget.json", "budget.json"), ("preflight.json", "preflight.json"),
                            ("publication.json", "publication.json"), ("audit/judgments.json", "audit_judgments.json")]:
         if (root / source).exists():
@@ -285,7 +291,9 @@ def report(root):
             "Learning: completion of parameter updates alone does not establish hacking mitigation; inspect the blinded behavioral comparison and capability safeguard in [summary](summary.md).\n")
     base_outcomes = {key: value for key, value in behavior.items() if key.startswith("base/")}
     (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. Absent measurements are not zero rates.\n\n```json\n" + json.dumps(base_outcomes, indent=2) + "\n```\n")
-    lines += ["", f"Pending blinded audits: {len(pending)}.", "", "## Frozen detector validation", "", "```json", json.dumps(detector, indent=2), "```",
+    lines += ["", f"Pending blinded audits: {len(pending)}.", "", "## Coverage and infrastructure", "", "```json", json.dumps(results["coverage"], indent=2), "```",
+              "", "Archived setup failures, when present, precede any model attempt. Their evidence and the dated recovery amendment remain separate from behavioral outcomes.",
+              "", "## Frozen detector validation", "", "```json", json.dumps(detector, indent=2), "```",
               "", "## Fixed data and realized routing", "", "```json", json.dumps({"data": data_summary, "routing": routing}, indent=2), "```",
               "", "## Same-Qwen judge validation and paired detector comparison", "", "```json", json.dumps({"judge": judge, "comparison": detector_comparison}, indent=2), "```",
               "", "## Secondary judge behavioral comparisons", "", "```json", json.dumps(secondary, indent=2), "```",
@@ -339,6 +347,8 @@ def report(root):
         ("Appendix: prospective power and reproducibility", "Normal-approximation sample requirements for a 10pp reduction at 80% power and two-sided alpha .05: " + json.dumps(results["power"]["independent"]) + ". Paired discordance and unknown seed-variance sensitivity are in results.json; they are planning assumptions. uv.lock pins the environment; artifacts.json pins sources and weights; data_lock.json fixes examples and preprocessing; per-checkpoint configuration and progress files record all actual updates. Full prompts, responses, scores and judgments are retained in timestamped local logs. Run uv run python -m experiments.qwen_probe run --profile pilot."),
         ("References", "[1] GRAFT. https://arxiv.org/abs/2610.17062\n[2] farzingkh/reward-hacking, revision cd4c566824c5961eaeab7b7fce7845240bd12b3d (MIT source). https://github.com/farzingkh/reward-hacking\n[3] Qwen3-0.6B. https://huggingface.co/Qwen/Qwen3-0.6B\n[4] Qwen3-Embedding-0.6B. https://huggingface.co/Qwen/Qwen3-Embedding-0.6B\n[5] Accelerate gradient accumulation. https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation\n[6] Liger Kernel. https://github.com/linkedin/Liger-Kernel\n[7] SciPy binomial inference. https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.binomtest.html\n[8] NeurIPS reporting checklist. https://neurips.cc/public/guides/PaperChecklist\n[9] Lones (2021), ML pitfalls. https://arxiv.org/abs/2108.02497\n[10] Lipton and Steinhardt (2018), Troubling Trends. https://arxiv.org/abs/1807.03341")]
     sections[-1] = (sections[-1][0], sections[-1][1] + "\n[11] Zheng et al. (2023), Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena. https://arxiv.org/abs/2306.05685")  # Local: support judge framing with its primary source.
+    if recoveries:
+        sections.insert(-2, ("Infrastructure recovery and coverage", f"{results['coverage']['archived_setup_failures']} initial Docker setup failures were archived before any agent or verifier execution. The pinned runner's cleanup had removed the shared local images. A dated post-start amendment permits one uniform recovery of wholly unstarted jobs, preserving their results and hashes in setup_recovery.json. Actual model attempts, including timeouts, are never repeated. Rebuilt executable platform manifests match the original pre-study build logs; attestation/index changes and their evidence are recorded in image_identity_recovery.json. Repairs consume the unchanged deadline. The 120-second agent limit makes measured capability conditional on this local inference implementation and throughput."))
     sections.insert(4, ("Frozen LLM-judge and probe inputs", "The untouched pinned Qwen3-0.6B judge uses the released intent rubric and conditional YES/NO next-token logits with thinking disabled. The downloaded probe uses its frozen LoRA encoder and four-layer turn-transformer head. Separate cutoffs use the same calibration tasks and empirical-FPR rule. Both receive the same normalized trajectory text, excluding labels, source paths, rewards and judge metadata. Both retain at most 248 turns. The judge permits 16,384 aggregate input tokens with head/tail truncation; the probe permits 4,096 tokens per turn with normalized 1,024-dimensional last-token embeddings. This coverage difference is disclosed, not equated. The judge arm and its 16 agentic episodes were added by a dated user amendment before any optimizer update or behavioral outcome. Its detector and behavioral comparisons are secondary; the primary remains probe GRAFT versus no intervention. Equal prominence in the presentation does not change these registered analysis priorities."))
     paper(destination, sections, [destination / "architecture.png", *figures])
     event("report_written", directory=destination, conclusion=conclusion, pending_audits=len(pending))
