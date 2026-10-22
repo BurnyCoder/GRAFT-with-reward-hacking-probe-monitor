@@ -1,7 +1,7 @@
 [project]
 name = "graft-qwen-probe"
 version = "0.1.0"
-description = "Exploratory Qwen3-0.6B GRAFT study with a frozen trajectory probe"
+description = "Exploratory Qwen3-0.6B GRAFT study with frozen LLM-judge and trajectory-probe monitors"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "torch==2.14.1",

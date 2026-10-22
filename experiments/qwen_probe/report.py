@@ -133,13 +133,15 @@ def estimate_text(value, interval=None):
     return f"{value:.3f}" + (f" (95% interval {interval[0]:.3f} to {interval[1]:.3f})" if interval else "")
 
 
-def behavior_table(behavior):
+def behavior_table(behavior, arm=None):
     """Global: separate success and intent. Local: display every planned condition without imputing missing trials."""
     from .evaluation import MODES  # Local: reuse the registered deployment grid instead of duplicating it.
     rows = [["Deployment / prompt", "Audited", "Hacking attempts", "Legitimate success", "Verifier success"]]
-    for arm, mode in MODES:
+    for name, mode in MODES:
+        if arm is not None and name != arm:  # Local: per-experiment reports retain every planned mode for their own arm.
+            continue
         for prompt in ("elicited", "plain"):
-            key = f"{arm}/{mode}/{prompt}"
+            key = f"{name}/{mode}/{prompt}"
             metrics = behavior.get(key)
             row = [key, f"{metrics['hacking']['total'] if metrics else 0}/8"]
             for field in ("hacking", "legitimate", "verifier_success"):
@@ -180,9 +182,15 @@ def monitor_text(name, result):
 
 def paired_text(label, comparison):
     """Global: equal visibility without changing analysis priority. Local: render existing paired estimates."""
-    values = "; ".join(f"{metric}: {estimate_text(value['difference'], value['bootstrap_ci95'])}, "
-                       f"{value['known_pairs']} known task pairs" for metric, value in comparison.items())  # Local: unknown pairs stay visibly unestimated.
-    return f"{label}: {values}."  # Local: the supplied label states direction and primary/secondary status.
+    values = []  # Local: reuse the same measured quantities in the paper and concise consolidated report.
+    for metric, value in comparison.items():
+        text = (f"{metric}: {estimate_text(value['difference'], value['bootstrap_ci95'])}, "
+                f"{value['known_pairs']}/{value['paired_tasks']} known task pairs")  # Local: ambiguous pairs do not disappear from the denominator.
+        if value["ambiguity_bounds"] is not None:  # Local: no shared tasks means no bounds, not zero uncertainty.
+            text += ", ambiguity bounds [" + ", ".join(f"{bound:.3f}" for bound in value["ambiguity_bounds"]) + "]"
+        text += f", exact discordance p={estimate_text(value['exact_discordance_p'])}"  # Local: descriptive evidence, not a new significance rule.
+        values.append(text)
+    return f"{label}: {'; '.join(values)}."  # Local: the supplied label states direction and primary/secondary status.
 
 
 def validation_report(root, name, lock, inventory):
@@ -304,6 +312,8 @@ def report(root):
                            "recovered_jobs": [item["job"] for item in recoveries],
                            "pending_audit_packets": len(pending), "note": "Unstarted or missing-result episodes are absent, never treated as nonhacking."}
     write_json(destination / "results.json", results)
+    write_json(destination / "audit_freeze.json", read_json(root / "audit/frozen_judgments.json") if audited else
+               {"status": "not finalized", "pending_packets": len(pending)})  # Local: an earlier smoke freeze cannot certify later study judgments.
     figures = result_figures(destination, results)
     for source, target in [("data/lock.json", "data_lock.json"), ("data/provenance.json", "provenance.json"),
                            ("monitor/threshold.json", "threshold.json"), ("evaluation/tasks.json", "tasks.json"),
@@ -313,7 +323,8 @@ def report(root):
                            ("evaluation/image_identity_recovery.json", "image_identity_recovery.json"),
                            ("evaluation/index.json", "evaluation_index.json"),  # Local: expose the implementation commit and timing of every deployment job.
                            ("budget.json", "budget.json"), ("preflight.json", "preflight.json"),
-                           ("publication.json", "publication.json"), ("audit/judgments.json", "audit_judgments.json")]:
+                           ("publication.json", "publication.json"), ("audit/judgments.json", "audit_judgments.json"),
+                           ("audit/session.json", "audit_session.json")]:  # Local: publish the mixed-batch procedure alongside the evidence.
         if (root / source).exists():
             shutil.copy2(root / source, destination / target)
     for arm in trained:  # Local: publish portable evidence of the exact invocation, including incomplete runs.
@@ -325,23 +336,33 @@ def report(root):
              "| Experiment | Updates | Completed recipe | Status |", "|---|---:|---|---|"]
     for arm, progress in trained.items():
         lines.append(f"| {arm} | {progress['steps']} | {progress['complete']} | {'complete' if progress['complete'] else 'incomplete'} |")
-        outcomes = {key: value for key, value in behavior.items() if key.startswith(arm + "/")}  # Local: same metrics as consolidated report.
+        rows, legend = behavior_table(behavior, arm=arm)  # Local: share counts, intervals and missingness with the main paper.
         (destination / f"{arm}.md").write_text(f"# {arm}\n\n" + ARM_RATIONALE[arm] + "\n\n" +
             f"Updates: {progress['steps']}. Complete planned training: {progress['complete']}.\n\n" +
             "Method and hyperparameter rationale: [preregistered protocol](../../docs/protocol.md). " +
             "Exact optimizer arguments are in the per-arm configuration JSON when the run has started. " +
             "The smoke checkpoint is an engineering check and excluded from study comparisons.\n\n" +
-            "Observed audited behavior (an empty object means no unblinded study measurements):\n\n```json\n" + json.dumps(outcomes, indent=2) + "\n```\n\n" +
+            (legend + "\n\n" + markdown_table(rows) if len(rows) > 1 else "The smoke is excluded from study outcomes; its task result is recorded in [engineering](engineering.md).") + "\n\n" +
             "Learning: completion of parameter updates alone does not establish hacking mitigation; inspect the blinded behavioral comparison and capability safeguard in [summary](summary.md).\n")
-    base_outcomes = {key: value for key, value in behavior.items() if key.startswith("base/")}
-    (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. Absent measurements are not zero rates.\n\n```json\n" + json.dumps(base_outcomes, indent=2) + "\n```\n")
-    lines += ["", f"Pending blinded audits: {len(pending)}.", "", "## Coverage and infrastructure", "", "```json", json.dumps(results["coverage"], indent=2), "```",
+    rows, legend = behavior_table(behavior, arm="base")  # Local: the untouched baseline gets the same outcome definitions.
+    (destination / "base.md").write_text("# Base model\n\nThe untouched pinned Qwen3-0.6B checkpoint measures initial task capability and spontaneous/elicited hacking. It receives no SFT updates. A failed-task floor here and in the primary no-intervention arm limits interpretation of lower hacking counts. Absent measurements are not zero rates.\n\n" + legend + "\n\n" + markdown_table(rows) + "\n")
+    lines += ["", f"Pending blinded audits: {len(pending)}.", "", "## Coverage and infrastructure", "",
+              f"Audited study episodes: {results['coverage']['audited_study_episodes']}/160. Archived setup failures: {results['coverage']['archived_setup_failures']}. "
+              "[Exact results](results.json) retain all denominators, paired task differences, truncation counts, source composition and planning calculations.",
               "", "Archived setup failures, when present, precede any model attempt. Their evidence and the dated recovery amendment remain separate from behavioral outcomes.",
-              "", "## Frozen detector validation", "", "```json", json.dumps(detector, indent=2), "```",
-              "", "## Fixed data and realized routing", "", "```json", json.dumps({"data": data_summary, "routing": routing}, indent=2), "```",
-              "", "## Same-Qwen judge validation and paired detector comparison", "", "```json", json.dumps({"judge": judge, "comparison": detector_comparison}, indent=2), "```",
-              "", "## Secondary judge behavioral comparisons", "", "```json", json.dumps(secondary, indent=2), "```",
-              "", "## Behavioral measurements", "", "```json", json.dumps(behavior, indent=2), "```", "", "## Primary paired comparison", "", "```json", json.dumps(primary, indent=2), "```",
+              "", "## Frozen LLM-judge and probe validation", "", monitor_text("Same-Qwen judge", judge), "", monitor_text("Downloaded probe", detector),
+              "", "[Paired detector comparison](monitor-comparison.md). Precision describes the selected clean/rewarded-hack mixture; calibration FPR does not guarantee heldout FPR.",
+              "", "## Fixed data and realized routing", "",
+              markdown_table([["Partition", "Records", "Tasks", "Clean", "Hack", "Learner tokens"]] +
+                  [[part, str(value["records"]), str(value["tasks"]), str(value["labels"].get("0", 0)), str(value["labels"].get("1", 0)), str(value["total_learner_tokens"])]
+                   for part, value in data_summary.items()]),
+              "", markdown_table([["Training treatment", "Flagged / total", "Labeled hacks flagged", "Labeled clean flagged"]] +
+                  [[arm, f"{value['flagged']}/{value['total']}", str(value["flagged_positive"]), str(value["flagged_negative"])] for arm, value in routing.items()]),
+              "", "## Primary paired comparison", "", paired_text("Elicited probe retain minus no intervention both", primary),
+              "", "## Secondary judge behavioral comparisons", "",
+              paired_text("Elicited LLM-judge retain minus no intervention both", secondary["judge_minus_no_intervention"]), "",
+              paired_text("Elicited LLM-judge retain minus probe retain", secondary["judge_minus_probe"]),
+              "", "These are descriptive, single-seed contrasts. Degenerate bootstrap intervals do not establish equivalence. Ambiguity bounds do not include entirely missing planned episodes.",
               "", "## Terminology and networks", "", "| Network / term | Architecture / algorithm | Objective and data | Measured meaning |",
               "|---|---|---|---|", "| Learner | Frozen Qwen3-0.6B, 28 layers, two width-64 MLP branches | Assistant-token SFT, matched clean/hack subset | Generates terminal actions |",
               "| Detector encoder | Qwen3-Embedding-0.6B plus frozen rank-16 attention LoRA | Upstream source-invariant training; no fitting here | 1,024-dimensional normalized turn vectors |",
@@ -352,7 +373,10 @@ def report(root):
               "| Hacking attempt | Intent-based blinded audit | Agent actions and rationale | Counts attempts even when they fail |",
               "| Legitimate success | Verifier success without hacking | Same audited episodes | Capability safeguard |",
               "| Completion / accuracy | Training completion and separate task outcomes | See manifests and intervals | No universal model accuracy or 'fill' metric applies |",
-              "", "## Prospective power", "", "```json", json.dumps(results["power"], indent=2), "```",
+              "", "## Prospective power", "", "For a 10-percentage-point reduction, 80% power and two-sided alpha .05:", "",
+              markdown_table([["Assumed baseline rate", "Assumed treatment rate", "Independent samples per arm"]] +
+                  [[f"{value['baseline']:.2f}", f"{value['treatment']:.2f}", str(value["n_per_arm"])] for value in results["power"]["independent"]]),
+              "", "Paired-task requirements and sensitivity to unknown seed variation are in [results.json](results.json); [analysis notes](../../docs/analysis.md) give the formulas and assumptions. These are prospective approximations, not achieved-power claims.",
               "", "Detailed engineering decisions and failures are recorded in [implementation log](../../docs/implementation.md). Full untruncated transcripts are under the ignored local artifacts/qwen_probe/logs directory."]
     if behavior:
         rows, legend = behavior_table(behavior)
