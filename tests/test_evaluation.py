@@ -77,3 +77,25 @@ def test_shim_upgrade_recovery_requires_explicit_unstarted_evidence(tmp_path, bl
         write_json(index, {"job": metadata})  # Local: even an identical subsequent setup failure cannot qualify twice.
         write_json(trial, result)
         assert recover_setup_failures(tmp_path, failure="shim-upgrade") == []
+
+
+@pytest.mark.parametrize("blocker", [None, "model_request", "job_directory", "missing_interval"])
+def test_uninitialized_launcher_requires_absent_job_and_no_requests(tmp_path, blocker):
+    """Global: no first attempt is inferred from a missing result alone. Local: require both startup and journal evidence."""
+    from experiments.qwen_probe.recovery import recover_setup_failures
+    metadata = {"tasks": ["a"], "status": "incomplete", "smoke": False, "exit_code": 1, "started": 10, "finished": 20}
+    if blocker == "missing_interval":
+        del metadata["started"]
+    write_json(tmp_path / "evaluation/index.json", {"job": metadata})
+    write_json(tmp_path / "evaluation/generations/server/call.json", {"started_at": 15 if blocker == "model_request" else 5})
+    if blocker == "job_directory":
+        (tmp_path / "evaluation/jobs/job").mkdir(parents=True)
+    assert recover_setup_failures(tmp_path, failure="shim-upgrade") == []
+    recovered = recover_setup_failures(tmp_path, failure="shim-upgrade", allow_uninitialized=True)
+    assert len(recovered) == (1 if blocker is None else 0)
+    if blocker is None:
+        assert recovered[0]["trial_count"] == 0 and recovered[0]["uninitialized_tasks"] == 1
+        assert recovered[0]["model_requests_in_interval"] == 0
+        assert (tmp_path / "evaluation/setup_failures/job/recovery.json").exists()
+        write_json(tmp_path / "evaluation/index.json", {"job": metadata})
+        assert recover_setup_failures(tmp_path, failure="shim-upgrade", allow_uninitialized=True) == []

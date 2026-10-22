@@ -115,6 +115,8 @@ def report_followup(pilot):
     recovery = root / "evaluation/setup_recovery.json"
     results["setup_recovery"] = read_json(recovery) if recovery.exists() else []
     results["archived_setup_failures"] = sum(item["trial_count"] for item in results["setup_recovery"])
+    results["uninitialized_launcher_failures"] = sum(item.get("failure") == "uninitialized-launcher" for item in results["setup_recovery"])
+    results["uninitialized_tasks"] = sum(item.get("uninitialized_tasks", 0) for item in results["setup_recovery"])
     results["original_results_sha256"] = file_hash(ROOT / "reports/qwen_probe/results.json")
     results["audit_freeze"] = read_json(root / "audit/frozen_judgments.json")
     destination = ROOT / "reports/qwen_probe/followup"
@@ -145,6 +147,8 @@ def report_followup(pilot):
               "The six comparisons are exploratory and unadjusted. A zero-width bootstrap is not evidence of equivalence. "
               "One seed and eight tasks do not support a general five-point capability guarantee.")
     infrastructure = (f"The dated infrastructure amendment archived {results['archived_setup_failures']} setup failures before any agent or verifier execution. "
+                      f"It also preserved {results['uninitialized_launcher_failures']} pre-job launcher failures covering {results['uninitialized_tasks']} uninitialized tasks; "
+                      "those cases require an absent job directory and zero journaled model requests during a valid launch interval. "
                       "The user upgraded host packages during collection; containerd shim API skew temporarily prevented container startup. "
                       "After services restarted externally, recovery required unchanged executable image hashes, no actual prior model attempt, "
                       "one recovery per wholly unstarted condition and the same persisted deadline. Pre-upgrade host versions were not captured; "

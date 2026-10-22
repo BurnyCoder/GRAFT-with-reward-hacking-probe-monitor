@@ -16,7 +16,22 @@ FAILURES = {"image-pull": ("pull access denied for graft-probe-task-",
 # Source: https://github.com/containerd/containerd/blob/v2.4.2/pkg/shim/compat.go.
 
 
-def recover_setup_failures(root, *, failure="image-pull"):
+def uninitialized_launcher(root, folder, metadata):
+    """Global: prove startup stopped before trials. Local: require absent job storage and zero journaled requests.
+
+    Sources: pinned harbor/job.py::Job.__init__ creates the job directory before running trials;
+    server.py::completion persists a request journal before tokenization or generation.
+    """
+    start, end = metadata.get("started"), metadata.get("finished")
+    journals = root / "evaluation/generations"
+    if (folder.exists() or metadata.get("status") != "incomplete" or metadata.get("exit_code") != 1
+            or not isinstance(start, (int, float)) or not isinstance(end, (int, float)) or end < start
+            or not journals.is_dir()):
+        return False  # Local: missing interval evidence or any initialized job blocks this exceptional path.
+    return not any(start <= read_json(path)["started_at"] <= end for path in journals.glob("*/*.json"))
+
+
+def recover_setup_failures(root, *, failure="image-pull", allow_uninitialized=False):
     """Global: outcome-blind repair. Local: require all expected trials to fail before agent/verifier execution."""
     signature, reason = FAILURES[failure]  # Local: the original pilot retains its image-pull-only default.
     index_path = root / "evaluation/index.json"
@@ -30,9 +45,12 @@ def recover_setup_failures(root, *, failure="image-pull"):
         folder = root / "evaluation/jobs" / name
         trials = [(path, read_json(path)) for path in sorted(folder.glob("*/result.json"))]
         expected = metadata.get("tasks", [])  # Local: missing task coverage is never permission to retry.
-        if metadata.get("smoke") or not expected or sorted(value.get("task_name", "") for _, value in trials) != sorted(expected):
+        uninitialized = allow_uninitialized and uninitialized_launcher(root, folder, metadata)
+        if metadata.get("smoke") or not expected:
             continue
-        eligible = all(not value.get("agent_execution") and not value.get("verifier_result")
+        if not uninitialized and sorted(value.get("task_name", "") for _, value in trials) != sorted(expected):
+            continue  # Local: only the separately documented pre-job launcher exception permits absent trials.
+        eligible = uninitialized or all(not value.get("agent_execution") and not value.get("verifier_result")
                        and not (path.parent / "agent/trajectory.json").exists()
                        and (value.get("exception_info") or {}).get("exception_type") == "RuntimeError"
                        and signature in value["exception_info"].get("exception_message", "")
@@ -44,7 +62,12 @@ def recover_setup_failures(root, *, failure="image-pull"):
         record = {"job": name, "metadata": metadata, "archived_at": time.time(), "trial_count": len(trials),
                   "reason": reason, "failure": failure,
                   "result_sha256": {str(path.relative_to(folder)): file_hash(path) for path, _ in trials}}
-        folder.rename(archive)  # Local: retain the original logs/results byte-for-byte; never erase a failed attempt.
+        if uninitialized:
+            record.update({"reason": "CLI exited before job initialization; absent job directory and zero model requests in its interval",
+                           "failure": "uninitialized-launcher", "uninitialized_tasks": len(expected), "model_requests_in_interval": 0})
+            archive.mkdir()  # Local: no original folder exists; preserve the index evidence instead of inventing trial files.
+        else:
+            folder.rename(archive)  # Local: retain the original logs/results byte-for-byte; never erase a failed attempt.
         write_json(archive / "recovery.json", record)
         del index[name]  # Local: normal fixed-order evaluation can now make its first model attempt.
         write_json(index_path, index)

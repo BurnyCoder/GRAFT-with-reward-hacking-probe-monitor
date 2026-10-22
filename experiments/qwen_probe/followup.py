@@ -116,4 +116,4 @@ def recover_followup(pilot):
                 shutil.copy2(root / f"{name}.json", target)  # Local: resumption cannot erase the first collection's provenance.
         verify_published(root)  # Local: the dated amendment and recovery implementation must be pushed first.
         ensure_task_images(root)  # Local: unchanged executable images are mandatory after the host upgrade.
-        return recover_setup_failures(root, failure="shim-upgrade")
+        return recover_setup_failures(root, failure="shim-upgrade", allow_uninitialized=True)

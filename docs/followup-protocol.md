@@ -60,3 +60,9 @@ The persisted follow-up deadline remains **2026-10-22 14:52:23.731 UTC**. Recove
 uv run python -m experiments.qwen_probe recover-setup --study ablation-followup
 uv run python -m experiments.qwen_probe evaluate --study ablation-followup
 ```
+
+### Pre-job launcher clarification — 22 October 2026, 13:30 UTC
+
+Still before any new behavioral evidence was read, one other condition was found to have exited with code 1 after 12.368 seconds, without creating its job directory. The model server's request journals contain **zero requests during that launch interval**. Pinned `harbor/job.py::Job.__init__` creates the job directory before trials run; this project's `server.py::completion` persists a journal before tokenization or generation. Together these observations support that none of its eight model attempts began. The underlying CLI error remains uninspected while blinding is active and is not attributed to the upgrade without further evidence.
+
+Permit one first-attempt recovery for this separately defined pre-job case: closed condition, exit code 1, valid start/end interval, entirely absent job directory, existing generation-journal directory and zero journaled requests in that interval. Preserve the original index metadata, absence/request checks and initial publication records in the recovery history. An existing job directory, any request, missing timestamps or prior recovery makes this path ineligible. This exception does not authorize retrying a partially executed condition or its setup timeouts. It changes neither the 40-attempt scope nor the 14:52:23.731 UTC deadline. Push the clarification and tests before recovery. Both recoverable conditions resume in their original fixed order; every actual attempt remains unique.
