@@ -77,7 +77,7 @@ Use the frozen Qwen3-0.6B base revision and the pinned repository implementation
 
 ## Reproduce and merge
 
-Clone https://github.com/BurnyCoder/GRAFT-with-reward-hacking-probe-monitor recursively, install with
+Clone https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors recursively, install with
 `uv sync --frozen`, and run the documented download phase. Download this adapter and run:
 
 ```bash

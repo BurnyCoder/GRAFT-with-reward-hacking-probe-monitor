@@ -9,8 +9,8 @@ The pilot reserves 32 training-side calibration tasks from the published 232/99 
 The full [preregistered protocol](docs/protocol.md) defines selection, falsification, controls, uncertainty, the six-hour default cap and the user's dated ten-more-hours amendment. [Implementation notes](docs/implementation.md) explain compatibility changes. **Engineering checks are not evidence of mitigation.** Current coverage and conclusions are in the [consolidated report](reports/qwen_probe/summary.md), [machine-readable results](reports/qwen_probe/results.json), and [PDF paper](reports/qwen_probe/paper.pdf), authored by Libor Burian.
 
 ```bash
-git clone --recursive https://github.com/BurnyCoder/GRAFT-with-reward-hacking-probe-monitor.git
-cd GRAFT-with-reward-hacking-probe-monitor
+git clone --recursive https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors.git graft-monitors
+cd graft-monitors
 uv sync --frozen
 cp .env.example .env
 uv run pytest -q
