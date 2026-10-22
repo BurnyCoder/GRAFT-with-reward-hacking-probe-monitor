@@ -1,4 +1,4 @@
-# Preregistered Qwen3-0.6B reward-hacking probe pilot
+# Preregistered Qwen3-0.6B GRAFT pilot with LLM-as-a-Judge and Probe Monitors
 
 Author: Libor Burian. Protocol version: 1.0, 2026-10-22. This document is committed and pushed before any real-model parameter update. Tests on randomly initialized miniature models are engineering checks. This is an exploratory, single-seed adaptation of [GRAFT](https://arxiv.org/abs/2610.17062), not a replication at the original scale.
 
@@ -7,6 +7,10 @@ Author: Libor Burian. Protocol version: 1.0, 2026-10-22. This document is commit
 The user requested a frozen Qwen3-0.6B LLM-judge detector baseline and an additional GRAFT arm using its flags, and then authorized ten more hours. The active run's deadline is extended to ten hours after that authorization is recorded; the original start and deadline remain in the budget history. This amendment precedes any real-model optimizer update or generated behavioral evaluation. The original data lock, downloaded-probe threshold and primary comparison remain fixed. The judge comparison is a prespecified secondary analysis; implementation details are recorded below before running it.
 
 The recorded authorization time is 2026-10-21 23:30:19.743 UTC and the amended deadline is **2026-10-22 09:30:19.743 UTC**. The original start was 2026-10-21 22:57:02.136 UTC, with original deadline 04:57:02.136 UTC. This user-directed extension adds a comparison before behavioral outcome access; it is not a result-dependent extension. Fresh replications retain the six-hour default unless separately amended.
+
+## Presentation amendment, 2026-10-22 00:20 UTC
+
+At the user's request, the implementation and reporting plan gives **LLM-as-a-judge and the downloaded probe equal prominence as the two frozen monitoring approaches** in the README headline, paper title, abstract and method description. Both detection comparisons and their separate GRAFT training/evaluation arms remain in scope. This presentation change was recorded after detector validation and the audited engineering smoke, while the first study arm was training and before study behavioral evaluation. It changes no hypothesis, primary/secondary designation, threshold, dataset, training setting, evaluation rule or deadline. The primary comparison below remains preregistered; the same-Qwen judge comparisons retain their secondary designation.
 
 ## Question and falsification
 

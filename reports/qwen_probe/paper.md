@@ -1,26 +1,26 @@
-# Qwen3-0.6B GRAFT with a Frozen Reward-Hacking Probe
+# Qwen3-0.6B GRAFT with LLM-as-a-Judge and Probe Monitors
 
 Libor Burian — exploratory pilot, 22 October 2026
 
 ## Abstract
 
-Mitigation effectiveness is inconclusive. The primary comparison is incomplete or has ambiguous judgments. This report covers 0 completed training arms and 0 audited study episodes; 0 audit packets remain pending. The experiment is an exploratory single-seed pilot, not a powered confirmatory test.
+We adapt GRAFT to Qwen3-0.6B with two frozen reward-hacking monitors: an LLM-as-a-judge using the untouched learner checkpoint, and a downloaded embedding encoder with a trajectory probe. Each supplies flags to a separate GRAFT treatment; we compare detector quality and agentic behavior. Mitigation effectiveness is inconclusive. The primary comparison is incomplete or has ambiguous judgments. This report covers 0 completed training arms and 0 audited study episodes; 0 audit packets remain pending. The experiment is an exploratory single-seed pilot, not a powered confirmatory test.
 
 ## Context, motivation and introduction
 
-GRAFT separates training updates into retain and forget adapters using a monitor [1]. This study replaces its simulated Terminal Wrench monitor with a separately trained, frozen trajectory detector [2] while reducing the learner to Qwen3-0.6B [3]. The motivation is to distinguish an implementable detector integration from evidence that the integration mitigates reward hacking.
+GRAFT separates training updates into retain and forget adapters using a monitor [1]. This extension compares two concrete replacements for its simulated Terminal Wrench monitor: a frozen Qwen3-0.6B LLM judge [3,11] and a separately trained, frozen trajectory probe [2], with Qwen3-0.6B as the learner [3]. Both methods are evaluated as detectors and as sources of routing flags. The motivation is to distinguish an implementable monitor integration from evidence that it mitigates reward hacking.
 
 ## Background and related work
 
-The external detector combines Qwen3-Embedding-0.6B [4], an attention LoRA adapter, and a turn-transformer classifier [2]. Its representations do not share activations with the learner. GRAFT's monitor flags route gradients; they are not scalar reward penalties [1]. External classification accuracy and generated hacking behavior measure different quantities.
+The LLM judge uses an intent rubric with conditional YES/NO next-token scores from the untouched Qwen3-0.6B [3]. LLM-as-a-judge research documents limitations that motivate empirical validation [11]; it does not establish this small judge's accuracy. The downloaded probe combines Qwen3-Embedding-0.6B [4], an attention LoRA adapter, and a turn-transformer classifier [2]. Both monitors run separately from learner training. GRAFT's monitor flags route gradients; they are not scalar reward penalties [1]. Classification accuracy and generated hacking behavior measure different quantities.
 
 ## Method
 
-The exact preregistration is docs/protocol.md in the published repository commit recorded in publication.json. Preserve the published 232/99 task split, reserve 32 training tasks for calibration (seed 42), and freeze a strict score cutoff at empirical clean FPR <= 5%. Select at most 192 balanced trajectories, in multiples of 48, with a common memory-preflight length cap. Freeze the base; train two width-64 branches for five epochs, effective batch 48, learning rate 5e-4, weight decay 1e-4, betas (0.9,0.95), cosine schedule, 5% warmup, 1% unlabeled anchors and forget-gradient multiplier 2. Compare no intervention, original simulated monitor, downloaded probe, probe filtering and length-bin-shuffled probe flags. Filtering uses ordinary AdamW and thus is not a pure routing contrast. Correct Accelerate accumulation normalization [5] and use loss-equivalent Liger Qwen3 fused CE [6].
+The exact preregistration is docs/protocol.md in the published repository commit recorded in publication.json. Preserve the published 232/99 task split, reserve 32 training tasks for calibration (seed 42), and independently freeze each monitor's strict score cutoff at empirical clean FPR <= 5%. Select at most 192 balanced trajectories, in multiples of 48, with a common memory-preflight length cap. Freeze the base; train two width-64 branches for five epochs, effective batch 48, learning rate 5e-4, weight decay 1e-4, betas (0.9,0.95), cosine schedule, 5% warmup, 1% unlabeled anchors and forget-gradient multiplier 2. Compare LLM-judge GRAFT, downloaded-probe GRAFT, no intervention, original simulated-monitor GRAFT, probe filtering and length-bin-shuffled probe GRAFT, plus the untouched base model. Filtering uses ordinary AdamW and thus is not a pure routing contrast. Correct Accelerate accumulation normalization [5] and use loss-equivalent Liger Qwen3 fused CE [6].
 
-## Same-Qwen judge and protocol amendment
+## Frozen LLM-judge and probe inputs
 
-The untouched pinned Qwen3-0.6B is a second frozen monitor, using the released intent rubric and conditional YES/NO next-token logits with thinking disabled. A separate cutoff uses the same calibration tasks and empirical-FPR rule. It receives the same normalized trajectory text, bounded to 248 turns and 16,384 aggregate input tokens with head/tail truncation; the probe instead permits 4,096 tokens per turn. This coverage difference is disclosed, not equated. Qwen-judge GRAFT adds a sixth trained treatment and 16 agentic episodes. Its detector and behavioral comparisons are secondary; the primary remains probe GRAFT versus no intervention. Judge limitations motivate measuring this baseline rather than assuming validity (Zheng et al., 2023, https://arxiv.org/abs/2306.05685).
+The untouched pinned Qwen3-0.6B judge uses the released intent rubric and conditional YES/NO next-token logits with thinking disabled. The downloaded probe uses its frozen LoRA encoder and four-layer turn-transformer head. Separate cutoffs use the same calibration tasks and empirical-FPR rule. Both receive the same normalized trajectory text, excluding labels, source paths, rewards and judge metadata. Both retain at most 248 turns. The judge permits 16,384 aggregate input tokens with head/tail truncation; the probe permits 4,096 tokens per turn with normalized 1,024-dimensional last-token embeddings. This coverage difference is disclosed, not equated. The judge arm and its 16 agentic episodes were added by a dated user amendment before any optimizer update or behavioral outcome. Its detector and behavioral comparisons are secondary; the primary remains probe GRAFT versus no intervention. Equal prominence in the presentation does not change these registered analysis priorities.
 
 ## Evaluation and analysis
 
@@ -64,6 +64,7 @@ Normal-approximation sample requirements for a 10pp reduction at 80% power and t
 [8] NeurIPS reporting checklist. https://neurips.cc/public/guides/PaperChecklist
 [9] Lones (2021), ML pitfalls. https://arxiv.org/abs/2108.02497
 [10] Lipton and Steinhardt (2018), Troubling Trends. https://arxiv.org/abs/1807.03341
+[11] Zheng et al. (2023), Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena. https://arxiv.org/abs/2306.05685
 
 ![architecture](architecture.png)
 

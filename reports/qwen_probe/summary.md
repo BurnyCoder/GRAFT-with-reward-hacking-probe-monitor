@@ -51,6 +51,7 @@ Pending blinded audits: 0.
   },
   "positive": 95,
   "negative": 99,
+  "sampling_note": "Validation selects at most one record per task and class: baseline clean versus rewarded hacks. Precision reflects this case mixture, not an estimated deployment prevalence. Generated audits instead count all observed hacking attempts, including unsuccessful ones.",
   "coverage": {
     "calibration": {
       "planned": 521,
@@ -229,6 +230,7 @@ Pending blinded audits: 0.
     },
     "positive": 95,
     "negative": 99,
+    "sampling_note": "Validation selects at most one record per task and class: baseline clean versus rewarded hacks. Precision reflects this case mixture, not an estimated deployment prevalence. Generated audits instead count all observed hacking attempts, including unsuccessful ones.",
     "coverage": {
       "calibration": {
         "planned": 521,

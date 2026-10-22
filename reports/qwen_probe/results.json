@@ -3,7 +3,69 @@
     "no_intervention": {
       "complete": false,
       "steps": 0,
-      "status": "not run"
+      "status": "not run",
+      "learning_curve": [
+        {
+          "time": 1792627981.8860853,
+          "step": 1,
+          "train/lr": 0.0005,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 0.25,
+          "train/unclassified/loss_mean_local": 1.3724470113714535,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.3332749009132385
+        },
+        {
+          "time": 1792628105.921822,
+          "step": 2,
+          "train/lr": 0.0005,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 0.5,
+          "train/unclassified/loss_mean_local": 1.2339309379458427,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.6921417117118835
+        },
+        {
+          "time": 1792628223.8104022,
+          "step": 3,
+          "train/lr": 0.0004965903258506806,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 0.75,
+          "train/unclassified/loss_mean_local": 1.0707471705973148,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.5734009146690369
+        },
+        {
+          "time": 1792628336.5287054,
+          "step": 4,
+          "train/lr": 0.00048645431042515866,
+          "train/n_forget_global": 0,
+          "train/n_unclassified_global": 48,
+          "train/n_retain_global": 0,
+          "train/n_forget_local": 0,
+          "train/n_unclassified_local": 48,
+          "train/n_retain_local": 0,
+          "train/epoch": 1.0,
+          "train/unclassified/loss_mean_local": 1.0310663344959419,
+          "gr/c_forget": 1.0,
+          "gr/forget_realized_step": 0.48642095923423767
+        }
+      ]
     },
     "probe_graft": {
       "complete": false,
@@ -125,6 +187,7 @@
     },
     "positive": 95,
     "negative": 99,
+    "sampling_note": "Validation selects at most one record per task and class: baseline clean versus rewarded hacks. Precision reflects this case mixture, not an estimated deployment prevalence. Generated audits instead count all observed hacking attempts, including unsuccessful ones.",
     "coverage": {
       "calibration": {
         "planned": 521,
@@ -202,6 +265,7 @@
     },
     "positive": 95,
     "negative": 99,
+    "sampling_note": "Validation selects at most one record per task and class: baseline clean versus rewarded hacks. Precision reflects this case mixture, not an estimated deployment prevalence. Generated audits instead count all observed hacking attempts, including unsuccessful ones.",
     "coverage": {
       "calibration": {
         "planned": 521,

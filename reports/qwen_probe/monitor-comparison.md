@@ -13,6 +13,6 @@ Both monitors use the same locked heldout trajectories and independently frozen 
 | recall | 0.032 | [-0.03158734602463606, 0.10309278350515463] |
 | fpr | 0.081 | [0.019949494949494957, 0.15151515151515152] |
 
-These secondary intervals are unadjusted and conditional on the fixed thresholds. A calibration FPR below 5% does not guarantee that heldout FPR is below 5%. Training flags and generated behavior measure different quantities; detector validation alone does not establish mitigation.
+These secondary intervals are unadjusted and conditional on the fixed thresholds. A calibration FPR below 5% does not guarantee that heldout FPR is below 5%. Precision reflects the selected baseline-clean/rewarded-hack mixture, not deployment prevalence. Training flags and generated behavior measure different quantities; detector validation alone does not establish mitigation.
 
 The upstream probe's training-task exposure remains unresolved ([provenance audit](../../docs/probe-provenance.md)). Source labels, task/source composition and different truncation capacities limit the comparison. Complete coverage and score-derived counts are retained in [results.json](results.json).
