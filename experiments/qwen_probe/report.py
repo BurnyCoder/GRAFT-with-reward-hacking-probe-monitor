@@ -311,6 +311,7 @@ def report(root):
                            ("data/arms.json", "routing_flags.json"),
                            ("evaluation/setup_recovery.json", "setup_recovery.json"),
                            ("evaluation/image_identity_recovery.json", "image_identity_recovery.json"),
+                           ("evaluation/index.json", "evaluation_index.json"),  # Local: expose the implementation commit and timing of every deployment job.
                            ("budget.json", "budget.json"), ("preflight.json", "preflight.json"),
                            ("publication.json", "publication.json"), ("audit/judgments.json", "audit_judgments.json")]:
         if (root / source).exists():
