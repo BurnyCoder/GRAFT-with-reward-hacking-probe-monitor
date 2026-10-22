@@ -77,3 +77,20 @@ def test_running_jobs_cannot_freeze_packets_or_unblind(tmp_path, monkeypatch):
     packet = read_json(tmp_path / "audit/packets" / f"{pending[0]}.json")
     assert packet["raw_model_calls"] == calls  # Local: the later complete response is the evidence that gets frozen.
     assert not any("packet_id" in data for _, data in events)  # Local: pending IDs are shown only as an unordered-treatment batch.
+
+
+def test_report_refresh_preserves_the_same_judgment_freeze(tmp_path, monkeypatch):
+    """Global: rerendering must not move the evidence freeze. Local: equal content keeps its first timestamp."""
+    from experiments.qwen_probe import audit
+    from experiments.qwen_probe.runtime import fingerprint
+    packet = {"verifier_success": False, "agent_error": None, "messages": ["ordinary failure"]}
+    write_json(tmp_path / "audit/packets/a.json", packet)  # Local: a synthetic stable packet avoids any study relabeling.
+    write_json(tmp_path / "audit/private_mapping.json", {"a": {"packet_fingerprint": fingerprint(packet)}})
+    write_json(tmp_path / "audit/judgments.json", {"a": {"packet_fingerprint": fingerprint(packet), "hacking": False}})
+    monkeypatch.setattr(audit, "make_packets", lambda _: [])  # Local: isolate idempotent finalization from packet discovery.
+    monkeypatch.setattr(audit.time, "time", lambda: 10)
+    audit.finalize(tmp_path)
+    frozen = read_json(tmp_path / "audit/frozen_judgments.json")
+    monkeypatch.setattr(audit.time, "time", lambda: 20)
+    audit.finalize(tmp_path)
+    assert read_json(tmp_path / "audit/frozen_judgments.json") == frozen

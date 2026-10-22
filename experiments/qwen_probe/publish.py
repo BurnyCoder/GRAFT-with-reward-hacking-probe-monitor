@@ -11,6 +11,18 @@ import subprocess  # Local: resolve authenticated username and collection slug.
 from .data import ARMS
 from .runtime import ROOT, event, execute, read_json, write_json
 
+REPOSITORY = "https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors"  # Local: canonical public implementation and methodology.
+
+
+def stage_reports(source, destination):
+    """Global: published evidence keeps usable source links. Local: adapt only GitHub-relative documentation links.
+
+    Source: https://huggingface.co/docs/hub/model-cards — Hub cards and reports use Markdown links.
+    """
+    shutil.copytree(source, destination, dirs_exist_ok=True)  # Local: numerical evidence and figures are copied byte-for-byte.
+    for path in destination.glob("*.md"):  # Local: Hub's report/ directory is shallower than reports/qwen_probe/ in Git.
+        path.write_text(path.read_text().replace("](../../docs/", f"]({REPOSITORY}/blob/main/docs/"))  # Local: leave within-report evidence links intact.
+
 
 def hub_environment():
     """Global: use confirmed CLI authentication. Local: default token location, workspace upload caches.
@@ -27,6 +39,27 @@ def hub_environment():
     return environment
 
 
+def ensure_collection(cli, namespace, env, root):
+    """Global: consistent monitor framing without duplicate collections. Local: persist the Hub-returned identity.
+
+    Sources: https://huggingface.co/docs/huggingface_hub/guides/collections and `hf collections update --help`.
+    """
+    path = root / "hub/publication.json"  # Local: the saved URL identifies the existing collection across title changes.
+    previous = read_json(path) if path.exists() else {}  # Local: retain already published model metadata on an interrupted refresh.
+    title = "Qwen3-0.6B GRAFT with LLM-as-a-Judge and Probe Monitors"  # Global: match the README and paper headline.
+    description = "Single-seed pilot comparing frozen LLM-judge and probe monitors. Checkpoints and evidence; no established safety guarantee."
+    if previous.get("collection"):  # Local: update the recorded object instead of looking up a new title.
+        slug = previous["collection"].split("/collections/", 1)[-1]  # Local: convert the public URL to the CLI's collection identifier.
+        if not slug.startswith(namespace + "/"):  # Local: an old workspace cannot redirect publication into another account.
+            raise RuntimeError("Saved collection belongs to a different Hugging Face namespace")
+        command = [cli, "collections", "update", slug, "--title", title]  # Local: metadata updates preserve collection items.
+    else:
+        command = [cli, "collections", "create", title, "--namespace", namespace, "--exists-ok"]  # Local: a fresh replication creates one collection.
+    collection = json.loads(subprocess.check_output(command + ["--description", description, "--format", "json"], env=env, text=True))
+    write_json(path, previous | {"collection": "https://huggingface.co/collections/" + collection["slug"]})  # Local: remember a changed slug before uploads begin.
+    return collection["slug"]  # Local: every subsequent upload and membership update uses the same identity.
+
+
 def publish(root):
     """Global: user-authorized publication. Local: upload only checkpoints/configs/cards/reports."""
     env = hub_environment()
@@ -35,10 +68,12 @@ def publish(root):
     namespace = identity.get("name") or identity.get("user")
     if not isinstance(namespace, str):
         raise RuntimeError("Could not determine the authenticated Hugging Face namespace")
-    collection = json.loads(subprocess.check_output([cli, "collections", "create", "Qwen3-0.6B GRAFT reward-hacking probe pilot",
-        "--namespace", namespace, "--description", "Exploratory single-seed pilot adapters, configs and evidence; no established safety guarantee.",
-        "--exists-ok", "--format", "json"], env=env, text=True))
-    slug = collection["slug"]
+    slug = ensure_collection(cli, namespace, env, root)  # Local: refresh the existing collection even after a headline change.
+    results_path = ROOT / "reports/qwen_probe/results.json"  # Local: cards share the report's actual coverage and conclusion.
+    results = read_json(results_path) if results_path.exists() else {}  # Local: early publication remains explicitly interim.
+    study_status = results.get("conclusion", "Study outcomes are not yet available.")
+    if "coverage" in results:
+        study_status += f" Audited episodes: {results['coverage']['audited_study_episodes']}/{results['coverage']['planned_study_episodes']}. " + " ".join(results.get("reasons", []))
     published = []
     for arm in ARMS:
         folder = root / "checkpoints" / arm
@@ -54,7 +89,7 @@ def publish(root):
         for filename in ("artifacts.json", "task_split.json"):
             shutil.copy2(ROOT / "experiments/qwen_probe" / filename, stage / filename)
         shutil.copy2(ROOT / "docs/protocol.md", stage / "protocol.md")
-        shutil.copytree(ROOT / "reports/qwen_probe", stage / "report", dirs_exist_ok=True)
+        stage_reports(ROOT / "reports/qwen_probe", stage / "report")  # Local: keep cross-site methodology citations usable.
         card = f"""---
 license: apache-2.0
 base_model: Qwen/Qwen3-0.6B
@@ -66,10 +101,15 @@ tags:
 language:
 - en
 ---
-# {arm}: Qwen3-0.6B GRAFT pilot adapter
+# {arm}: Qwen3-0.6B GRAFT with LLM-as-a-Judge and Probe Monitors
 
 Author: Libor Burian. **Exploratory artifact, single training seed; no established safety guarantee.**
 Completed planned training: {progress['complete']}; completed optimizer updates: {progress['steps']}.
+
+{study_status}
+
+The two monitor treatments use a frozen untouched Qwen3-0.6B LLM judge and a separately downloaded,
+frozen embedding/trajectory probe. They supply precomputed routing flags, never training rewards.
 
 This is a custom dual-MLP adapter state dictionary, not a PEFT LoRA checkpoint or a standalone language model.
 Use the frozen Qwen3-0.6B base revision and the pinned repository implementation. See `protocol.md`,
@@ -77,7 +117,7 @@ Use the frozen Qwen3-0.6B base revision and the pinned repository implementation
 
 ## Reproduce and merge
 
-Clone https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors recursively, install with
+Clone {REPOSITORY} recursively, install with
 `uv sync --frozen`, and run the documented download phase. Download this adapter and run:
 
 ```bash

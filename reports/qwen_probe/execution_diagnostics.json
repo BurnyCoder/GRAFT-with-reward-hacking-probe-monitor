@@ -1,0 +1,128 @@
+{
+  "analysis_status": "post-hoc descriptive engineering diagnostic",
+  "conditions": {
+    "no_intervention/both/elicited": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 4,
+      "parsed_command_requests": 42,
+      "agent_timeouts": 8,
+      "missing_trajectories": 0,
+      "raw_model_calls": 38
+    },
+    "no_intervention/both/plain": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 1,
+      "parsed_command_requests": 89,
+      "agent_timeouts": 8,
+      "missing_trajectories": 0,
+      "raw_model_calls": 32
+    },
+    "probe_graft/retain/elicited": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 1,
+      "parsed_command_requests": 85,
+      "agent_timeouts": 8,
+      "missing_trajectories": 0,
+      "raw_model_calls": 37
+    },
+    "probe_graft/retain/plain": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 1,
+      "parsed_command_requests": 66,
+      "agent_timeouts": 7,
+      "missing_trajectories": 0,
+      "raw_model_calls": 30
+    },
+    "base/both/elicited": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 0,
+      "parsed_command_requests": 36,
+      "agent_timeouts": 0,
+      "missing_trajectories": 0,
+      "raw_model_calls": 16
+    },
+    "base/both/plain": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 0,
+      "parsed_command_requests": 49,
+      "agent_timeouts": 2,
+      "missing_trajectories": 0,
+      "raw_model_calls": 31
+    },
+    "qwen_judge_graft/retain/elicited": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 8,
+      "parsed_command_requests": 0,
+      "agent_timeouts": 0,
+      "missing_trajectories": 0,
+      "raw_model_calls": 128
+    },
+    "qwen_judge_graft/retain/plain": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 8,
+      "parsed_command_requests": 0,
+      "agent_timeouts": 1,
+      "missing_trajectories": 0,
+      "raw_model_calls": 128
+    },
+    "original_graft/retain/elicited": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 8,
+      "parsed_command_requests": 0,
+      "agent_timeouts": 1,
+      "missing_trajectories": 0,
+      "raw_model_calls": 120
+    },
+    "original_graft/retain/plain": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 8,
+      "parsed_command_requests": 0,
+      "agent_timeouts": 3,
+      "missing_trajectories": 0,
+      "raw_model_calls": 112
+    },
+    "probe_filtering/retain/elicited": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 2,
+      "parsed_command_requests": 75,
+      "agent_timeouts": 8,
+      "missing_trajectories": 0,
+      "raw_model_calls": 45
+    },
+    "probe_filtering/retain/plain": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 0,
+      "parsed_command_requests": 119,
+      "agent_timeouts": 8,
+      "missing_trajectories": 0,
+      "raw_model_calls": 52
+    },
+    "random_graft/retain/elicited": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 1,
+      "parsed_command_requests": 107,
+      "agent_timeouts": 8,
+      "missing_trajectories": 0,
+      "raw_model_calls": 45
+    },
+    "random_graft/retain/plain": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 1,
+      "parsed_command_requests": 117,
+      "agent_timeouts": 7,
+      "missing_trajectories": 0,
+      "raw_model_calls": 58
+    },
+    "probe_graft/both/elicited": {
+      "episodes": 8,
+      "zero_parsed_command_episodes": 3,
+      "parsed_command_requests": 59,
+      "agent_timeouts": 8,
+      "missing_trajectories": 0,
+      "raw_model_calls": 52
+    }
+  },
+  "execution_intervals_checked": 120,
+  "overlapping_execution_pairs": 0,
+  "note": "Parsed requests are not successful shell executions. Counts do not alter frozen intent judgments or establish a causal failure mechanism. Zero overlapping intervals supports the timestamp-based journal association for this sequential run."
+}

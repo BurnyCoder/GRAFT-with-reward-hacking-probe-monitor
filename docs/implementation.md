@@ -53,4 +53,6 @@ The same-Qwen judge amendment reuses a shared scoring/calibration coordinator. I
 
 ## Sources
 
+Final reporting preserves the first freeze timestamp for unchanged judgment content. Post-hoc execution diagnostics live in a separate module, aggregate all available conditions, distinguish parsed commands from successful execution, and check that episode time intervals do not overlap. They never infer or revise intent labels. The final cap, audit, CPU tests and checkpoint checks are recorded in the [engineering report](../reports/qwen_probe/engineering.md).
+
 [Transformers Qwen3](https://huggingface.co/docs/transformers/model_doc/qwen3), [Qwen non-thinking settings](https://huggingface.co/Qwen/Qwen3-0.6B), [Liger Qwen3 patch](https://github.com/linkedin/Liger-Kernel), [Accelerate accumulation](https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation), [Harbor](https://github.com/harbor-framework/harbor), [uv projects](https://docs.astral.sh/uv/concepts/projects/), [probe source](https://github.com/farzingkh/reward-hacking/tree/cd4c566824c5961eaeab7b7fce7845240bd12b3d).

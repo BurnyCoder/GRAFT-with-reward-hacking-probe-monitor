@@ -1,0 +1,31 @@
+{
+  "cpu_suite": {
+    "command": "uv run pytest -q -m 'not gpu'",
+    "completed_at_utc": "2026-10-22T10:07:13Z",
+    "passed": 40,
+    "deselected": 2,
+    "seconds": 16.15,
+    "warning": "PyTorch nested tensors remain a prototype API"
+  },
+  "cuda_equivalence": "FP32 and BF16 cases passed before pilot training; unchanged kernels were not rerun after the cap",
+  "upstream_optimizer_gates": 8,
+  "static_checks": [
+    "ruff F,E9",
+    "git diff --check",
+    "uv lock --check"
+  ],
+  "evidence_checks": [
+    "120 distinct study task/treatment/mode/prompt tuples",
+    "8 ambiguous intent labels retained",
+    "120 nonoverlapping study execution intervals",
+    "judgment SHA256 matches freeze",
+    "40 missing planned episodes retained",
+    "local documentation links resolve",
+    "candidate tracked text has no credential-pattern matches"
+  ],
+  "paper": {
+    "pages": 7,
+    "visually_inspected": true,
+    "sha256": "fd348f541a3858724703d7ed6066326f74a96a22b9785eb974f48660c2a5a733"
+  }
+}
