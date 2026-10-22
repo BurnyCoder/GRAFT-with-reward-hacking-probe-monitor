@@ -11,6 +11,18 @@ import subprocess  # Local: resolve authenticated username and collection slug.
 from .data import ARMS
 from .runtime import ROOT, event, execute, read_json, write_json
 
+REPOSITORY = "https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors"  # Local: canonical public implementation and methodology.
+
+
+def stage_reports(source, destination):
+    """Global: published evidence keeps usable source links. Local: adapt only GitHub-relative documentation links.
+
+    Source: https://huggingface.co/docs/hub/model-cards — Hub cards and reports use Markdown links.
+    """
+    shutil.copytree(source, destination, dirs_exist_ok=True)  # Local: numerical evidence and figures are copied byte-for-byte.
+    for path in destination.glob("*.md"):  # Local: Hub's report/ directory is shallower than reports/qwen_probe/ in Git.
+        path.write_text(path.read_text().replace("](../../docs/", f"]({REPOSITORY}/blob/main/docs/"))  # Local: leave within-report evidence links intact.
+
 
 def hub_environment():
     """Global: use confirmed CLI authentication. Local: default token location, workspace upload caches.
@@ -77,7 +89,7 @@ def publish(root):
         for filename in ("artifacts.json", "task_split.json"):
             shutil.copy2(ROOT / "experiments/qwen_probe" / filename, stage / filename)
         shutil.copy2(ROOT / "docs/protocol.md", stage / "protocol.md")
-        shutil.copytree(ROOT / "reports/qwen_probe", stage / "report", dirs_exist_ok=True)
+        stage_reports(ROOT / "reports/qwen_probe", stage / "report")  # Local: keep cross-site methodology citations usable.
         card = f"""---
 license: apache-2.0
 base_model: Qwen/Qwen3-0.6B
@@ -105,7 +117,7 @@ Use the frozen Qwen3-0.6B base revision and the pinned repository implementation
 
 ## Reproduce and merge
 
-Clone https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors recursively, install with
+Clone {REPOSITORY} recursively, install with
 `uv sync --frozen`, and run the documented download phase. Download this adapter and run:
 
 ```bash

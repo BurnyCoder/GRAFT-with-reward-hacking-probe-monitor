@@ -36,3 +36,16 @@ def test_collection_rename_reuses_recorded_identity(tmp_path, monkeypatch):
     assert "LLM-as-a-Judge and Probe Monitors" in calls[0][calls[0].index("--title") + 1]
     saved = read_json(tmp_path / "hub/publication.json")
     assert saved["collection"].endswith(new) and saved["models"] == manifest["models"]
+
+
+def test_staged_report_links_resolve_to_published_methodology(tmp_path):
+    """Global: downloaded artifacts must retain usable sources. Local: Hub reports sit one directory shallower."""
+    from experiments.qwen_probe.publish import stage_reports
+    source, stage = tmp_path / "source", tmp_path / "stage"
+    source.mkdir()  # Local: use a small fixture instead of uploading during tests.
+    (source / "summary.md").write_text('[method](../../docs/protocol.md) [evidence](results.json)')
+    (source / "results.json").write_text('{"complete": false}')
+    stage_reports(source, stage)
+    assert '/blob/main/docs/protocol.md)' in (stage / "summary.md").read_text()
+    assert '[evidence](results.json)' in (stage / "summary.md").read_text()
+    assert (stage / "results.json").read_bytes() == (source / "results.json").read_bytes()
