@@ -1,0 +1,40 @@
+{
+  "study": "ablation-followup",
+  "source_sha256": {
+    "budget.json": "94be72efb86a36e9e67ad3d7aeca90ccd75784fc4c4fe7fa8cbb3ba0f65d7e06",
+    "evaluation/tasks.json": "773a1399bf77a819afac86c44efd5f4c863f0b523ae927fd905bf8eb4571fb70",
+    "evaluation/index.json": "4b165c6595fe1fa3957eefa5b0a9817ca5e7be0cd5922905313736477f33ea44",
+    "audit/judgments.json": "3234c6e340a6b19a37aeaefd4a7646ccca77dc81efec483e2427bb1ed72a37ae",
+    "audit/frozen_judgments.json": "1f3e53d18c4512dfff4b595903c4d56db398217b5858fa4c165f645382272524",
+    "audit/unblinded.json": "9cfec991e21205c20c9883122661669b73a89a39a6f4cf7e9c6ec6da9b3ada14",
+    "data/lock.json": "67da696bad461baab395bb2ab5a4cb0b6df19ac79b13b628a11f00b18df36015",
+    "downloads.json": "425522b8bf4b908b0a12bcd96cb48717dea8d3c1f4c53ad2dd90341e42406904",
+    "monitor/threshold.json": "edd0404f60c236bff59a1d61d5d777ff55a268fda536f9e11dabbb84b138299d",
+    "judge/threshold.json": "793823a6854c22b51cb3d83fa3eb0e79b464ee47d831e0381c4f4d0c48f0e5c2",
+    "models/learner/LICENSE": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+    "models/learner/README.md": "1ab64a26fcb3b461423b89a433a8c858f1bf8d4086f979cbb3ff878d47cf20e9",
+    "models/learner/config.json": "660db3b73d788119c04535e48cf9be5f55bc3100841a718637ae695b442f27dd",
+    "models/learner/generation_config.json": "2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2",
+    "models/learner/merges.txt": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+    "models/learner/model.safetensors": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b",
+    "models/learner/tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+    "models/learner/tokenizer_config.json": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101",
+    "models/learner/vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+    "checkpoints/probe_graft/adapter_state_dict.pt": "67290c5206dd5f2365f2378ad86784e5194e0dc6198d65ee530aecc6655ec2c4",
+    "checkpoints/probe_graft/configuration.json": "1fb9778e0fe85299e867c45de85daab0b91e4cd4ee16722b4b506aa724b8efa4",
+    "checkpoints/probe_graft/progress.json": "4550878022d6aaada1f4a28df6409f6ff0ad03e74936593fe6def8bb5886b23d",
+    "checkpoints/no_intervention/adapter_state_dict.pt": "ff43ed06a4ae1fec6a5772a81066e2c8ab68b7b89aafdd54e5aa6ef89155249d",
+    "checkpoints/no_intervention/configuration.json": "06c79326a06443b95467092a1c0a12befa9b62a2ff93c249eb1227c35db70f07",
+    "checkpoints/no_intervention/progress.json": "297528cc5a814367cd84e29e3da0d807d333af3845d2b2b1ccd50f819b5f3afa"
+  },
+  "jobs": [
+    "probe_graft-both-plain",
+    "probe_graft-forget-elicited",
+    "probe_graft-forget-plain",
+    "no_intervention-retain-elicited",
+    "no_intervention-retain-plain"
+  ],
+  "planned_episodes": 40,
+  "hours": 3,
+  "analysis_status": "exploratory; original pilot outcomes already known"
+}

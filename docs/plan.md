@@ -1,5 +1,16 @@
 # Implementation and delivery plan
 
+## Later user-authorized follow-up, 22 October 2026
+
+The closed-pilot checklist below is historical and complete. The user's later request adds a separate [exploratory ablation follow-up](followup-protocol.md).
+
+- [ ] Push the follow-up scope and tested isolated evaluator before additional model attempts.
+- [ ] Attempt the five previously unrun conditions under a separate three-hour cap, preserving original evidence and checkpoints.
+- [ ] Audit all new episodes in one mixed opaque batch after every server closes; freeze before treatment reveal.
+- [ ] Publish separate and combined descriptive reports, a sourced PDF supplement and updated model evidence; verify hashes and merge the follow-up PR.
+
+## Closed pilot delivery
+
 This checklist tracks delivery. The [preregistered protocol](protocol.md) owns scientific choices and dated amendments; [results](../reports/qwen_probe/summary.md) own measurements. An unchecked item is unfinished, not a negative experimental result.
 
 - [x] Initialize the root uv project, local virtual environment, workspace caches, `.env` configuration and compatible dependency lock; preserve the upstream experiment.

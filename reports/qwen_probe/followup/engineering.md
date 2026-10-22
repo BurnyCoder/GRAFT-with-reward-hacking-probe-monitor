@@ -1,0 +1,7 @@
+# Follow-up engineering evidence
+
+2026-10-22, before additional model attempts: six regressions first failed for the absent follow-up implementation and missing condition selector. After implementation they passed. They cover source-clock preservation, source-hash changes, active or unfrozen original evidence, already-attempted conditions, an independent persistent three-hour clock, and plain-only evaluation without repeating the original elicited attempts. The full CPU suite passed **46 tests**, with two previously validated CUDA tests deselected. The known PyTorch nested-tensor prototype warning remains. Ruff F/E9, `git diff --check` and `uv lock --check` passed.
+
+The real prepare command completed at 11:50:35 UTC without any model attempt or budget start. It checked the closed pilot's frozen judgment hash, preserved its clock and copied only the small required manifests. Original base/tokenizer files and the two reused adapter checkpoints are SHA-256 locked in [manifest.json](manifest.json). Shared inputs are read-only by workflow; the follow-up CLI exposes no training or calibration phase. Actual condition coverage and audit results are pending.
+
+The single correctness pass checked condition ordering, source/pilot separation, checkpoint completeness, process ownership, unchanged generation settings, no-repeat behavior and audit closure. Science and stopping choices are in the [follow-up protocol](../../../docs/followup-protocol.md), rather than inferred from upcoming outputs.

@@ -27,6 +27,8 @@ Prerequisites: Linux/WSL, Python 3.12, [uv](https://docs.astral.sh/uv/getting-st
 
 ## Phases and audit
 
+After publication of the closed pilot, the user authorized completion of the 40 unrun ablation episodes. This is a **separate exploratory follow-up**, with fixed saved checkpoints, its own three-hour cap and separate audits. The original pilot's deadline, results and conclusion remain unchanged. See the [follow-up protocol and commands](docs/followup-protocol.md); follow-up results are pending.
+
 ```bash
 uv run python -m experiments.qwen_probe download
 uv run python -m experiments.qwen_probe prepare
