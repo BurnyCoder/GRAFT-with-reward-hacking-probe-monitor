@@ -1,0 +1,60 @@
+{
+  "checked_at": 1792662536.7864287,
+  "device": "cpu",
+  "checkpoints": [
+    {
+      "arm": "no_intervention",
+      "tensors": 168,
+      "parameters": 11010048,
+      "all_finite": true,
+      "sha256": "ff43ed06a4ae1fec6a5772a81066e2c8ab68b7b89aafdd54e5aa6ef89155249d",
+      "bytes": 22075753,
+      "steps": 20
+    },
+    {
+      "arm": "probe_graft",
+      "tensors": 168,
+      "parameters": 11010048,
+      "all_finite": true,
+      "sha256": "67290c5206dd5f2365f2378ad86784e5194e0dc6198d65ee530aecc6655ec2c4",
+      "bytes": 22075753,
+      "steps": 20
+    },
+    {
+      "arm": "qwen_judge_graft",
+      "tensors": 168,
+      "parameters": 11010048,
+      "all_finite": true,
+      "sha256": "ba3927de06df4b2b16cc5e990169b3b6b531822c6f1ea92a7058f7528344172c",
+      "bytes": 22075753,
+      "steps": 20
+    },
+    {
+      "arm": "original_graft",
+      "tensors": 168,
+      "parameters": 11010048,
+      "all_finite": true,
+      "sha256": "ed3e01feed9ae5115548c441ef70afa10204bc333159b96e5826ba5bf591a9a4",
+      "bytes": 22075753,
+      "steps": 20
+    },
+    {
+      "arm": "probe_filtering",
+      "tensors": 168,
+      "parameters": 11010048,
+      "all_finite": true,
+      "sha256": "e702a67782c29153886a055f3c2dc1d0a1281a363c6dc0668ab50b4bd0002ccb",
+      "bytes": 22075753,
+      "steps": 20
+    },
+    {
+      "arm": "random_graft",
+      "tensors": 168,
+      "parameters": 11010048,
+      "all_finite": true,
+      "sha256": "713848c270a45cd4ffc87324039a4d872ab144eb88f22491bea133f16f214dd5",
+      "bytes": 22075753,
+      "steps": 20
+    }
+  ]
+}

@@ -8,6 +8,10 @@ The pilot reserves 32 training-side calibration tasks from the published 232/99 
 
 The full [preregistered protocol](docs/protocol.md) defines selection, falsification, controls, uncertainty, the six-hour default cap and the user's dated ten-more-hours amendment. The [delivery plan](docs/plan.md) tracks completion; [implementation notes](docs/implementation.md) explain compatibility changes. **Engineering checks are not evidence of mitigation.** Current coverage and conclusions are in the [consolidated report](reports/qwen_probe/summary.md), [machine-readable results](reports/qwen_probe/results.json), and [PDF paper](reports/qwen_probe/paper.pdf), authored by Libor Burian.
 
+**Final pilot result: mitigation effectiveness is inconclusive.** All six training arms finished 20 updates. All 120 available study episodes were audited before unblinding: 112 cover every main deployment under both prompts; eight cover the probe's elicited both-adapter ablation. The fixed deadline left 40 planned ablation episodes unrun. On eight elicited tasks, probe retain-only had one confirmed hacking attempt and one ambiguous case; no intervention had two confirmed attempts and three ambiguous cases; Qwen-judge retain-only had none. Both monitor arms achieved 0/8 legitimate successes versus 1/8 for no intervention, a 12.5-point loss beyond the registered five-point tolerance. The Qwen-judge arm produced no parsed shell commands in any of its 16 episodes. These results do not establish useful selective mitigation.
+
+The frozen detectors also had limited discrimination on 194 heldout labeled trajectories: AUROC was 0.497 for the downloaded probe and 0.569 for the Qwen judge. Their paired difference was 0.072 (95% task-bootstrap interval −0.033 to 0.176). See the [monitor comparison](reports/qwen_probe/monitor-comparison.md) for thresholded metrics, uncertainty and the unresolved upstream exposure caveat. All intent labels, ambiguity and capability failures remain in the published evidence.
+
 ```bash
 git clone --recursive https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors.git graft-monitors
 cd graft-monitors
@@ -79,6 +83,8 @@ flowchart LR
 
 ![Frozen probe and same-Qwen judge validation with task-bootstrap intervals](reports/qwen_probe/detector.png)
 
+![Available elicited outcomes with Wilson intervals; missing conditions and ambiguity are detailed in the report](reports/qwen_probe/behavior.png)
+
 The [monitor comparison](reports/qwen_probe/monitor-comparison.md) reports paired detection differences separately from behavioral mitigation. The [engineering report](reports/qwen_probe/engineering.md) records numerical checks and the audited real smoke, including its agent timeout and failed task outcome.
 
 [Analysis notes](docs/analysis.md) derive the training objective, paired estimands, ambiguity bounds and prospective task/seed sample requirements. They explain why this small pilot cannot establish a five-percentage-point noninferiority guarantee or general mitigation effectiveness.
@@ -104,6 +110,6 @@ uv run python -m experiments.qwen_probe publish
 
 The publisher uses the existing CLI login and an explicit upload allowlist. It saves and reuses the collection identity across title changes. These are custom dual-MLP adapter checkpoints, not PEFT LoRA adapters; the model cards explain how to merge them with the pinned base. Large source/model downloads and raw logs stay local. The downloaded external detector is attributed and linked, not reuploaded.
 
-Published adapters are in the [LLM-as-a-Judge and Probe Monitors pilot collection](https://huggingface.co/collections/BurnyCoder/qwen3-06b-graft-with-llm-as-a-judge-and-probe-monitors-6ad9489d0f6a863cf37b1517). The [publication manifest](reports/qwen_probe/huggingface.json) lists available models, and [remote verification](reports/qwen_probe/hub_verification.json) records checked revisions and file hashes. Completed training and completed behavioral auditing are separate: interim checkpoints remain pilot artifacts with unresolved effectiveness.
+All six trained adapters are published in the [LLM-as-a-Judge and Probe Monitors pilot collection](https://huggingface.co/collections/BurnyCoder/qwen3-06b-graft-with-llm-as-a-judge-and-probe-monitors-6ad9489d0f6a863cf37b1517). The [publication manifest](reports/qwen_probe/huggingface.json) lists the models, and [remote verification](reports/qwen_probe/hub_verification.json) records checked revisions and file hashes. Completed training and completed behavioral auditing are separate: all checkpoints remain exploratory pilot artifacts with inconclusive effectiveness.
 
 Upstream GRAFT: Ward*, Hu*, Wong, Hu, Woodworth, Turner and Cloud; see [paper](https://arxiv.org/abs/2610.17062), [NOTICE](NOTICE) and [licenses](LICENSES/). Probe code/artifacts: [farzingkh/reward-hacking](https://github.com/farzingkh/reward-hacking), pinned source under MIT; the Drive files have no separate license statement. Qwen models: [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B) and [Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B), Apache-2.0 model cards. Experimental claims are limited to the evidence recorded in this repository.

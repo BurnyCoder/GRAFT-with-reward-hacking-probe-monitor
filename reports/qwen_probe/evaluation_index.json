@@ -33,5 +33,299 @@
     "implementation_commit": "9d14550016fe3a760bf5ff2f18cc6c8e78bd82b1",
     "exit_code": 0,
     "finished": 1792633940.6353521
+  },
+  "no_intervention-both-plain": {
+    "arm": "no_intervention",
+    "mode": "both",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792636768.6309657,
+    "status": "finished",
+    "implementation_commit": "7f405119d0d60a23120620e325952172e346222f",
+    "exit_code": 0,
+    "finished": 1792638161.0432005
+  },
+  "probe_graft-retain-elicited": {
+    "arm": "probe_graft",
+    "mode": "retain",
+    "elicited": true,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792638178.793086,
+    "status": "finished",
+    "implementation_commit": "6d48710c2920d4893e5b6a7c2fd2169f3e35234c",
+    "exit_code": 0,
+    "finished": 1792639567.4660373
+  },
+  "probe_graft-retain-plain": {
+    "arm": "probe_graft",
+    "mode": "retain",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792639567.505475,
+    "status": "finished",
+    "implementation_commit": "d46997055fa46db8b0285a3e462be73cfe5c1bde",
+    "exit_code": 0,
+    "finished": 1792640906.5333898
+  },
+  "base-both-elicited": {
+    "arm": "base",
+    "mode": "both",
+    "elicited": true,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792640922.9820516,
+    "status": "finished",
+    "implementation_commit": "d46997055fa46db8b0285a3e462be73cfe5c1bde",
+    "exit_code": 0,
+    "finished": 1792641675.9621837
+  },
+  "base-both-plain": {
+    "arm": "base",
+    "mode": "both",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792641676.006204,
+    "status": "finished",
+    "implementation_commit": "f1e7ae952e81ea8713cd99ee4c456a2e30583924",
+    "exit_code": 0,
+    "finished": 1792642569.8541675
+  },
+  "qwen_judge_graft-retain-elicited": {
+    "arm": "qwen_judge_graft",
+    "mode": "retain",
+    "elicited": true,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792642593.565498,
+    "status": "finished",
+    "implementation_commit": "e0e312049245f4f7912fb5a4d15c3cacab937f0b",
+    "exit_code": 0,
+    "finished": 1792643737.3879302
+  },
+  "qwen_judge_graft-retain-plain": {
+    "arm": "qwen_judge_graft",
+    "mode": "retain",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792643737.4391398,
+    "status": "finished",
+    "implementation_commit": "e0e312049245f4f7912fb5a4d15c3cacab937f0b",
+    "exit_code": 0,
+    "finished": 1792644832.6153429
+  },
+  "original_graft-retain-elicited": {
+    "arm": "original_graft",
+    "mode": "retain",
+    "elicited": true,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792647203.1805038,
+    "status": "finished",
+    "implementation_commit": "2291ceb1778b02b89938b371481fbef36759ca70",
+    "exit_code": 0,
+    "finished": 1792648147.5199635
+  },
+  "original_graft-retain-plain": {
+    "arm": "original_graft",
+    "mode": "retain",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792648147.5596757,
+    "status": "finished",
+    "implementation_commit": "1bbc763a8ad20f57412f4a6fee1cfc66e448c693",
+    "exit_code": 0,
+    "finished": 1792649174.5228872
+  },
+  "probe_filtering-retain-elicited": {
+    "arm": "probe_filtering",
+    "mode": "retain",
+    "elicited": true,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792651398.5797691,
+    "status": "finished",
+    "implementation_commit": "1bbc763a8ad20f57412f4a6fee1cfc66e448c693",
+    "exit_code": 0,
+    "finished": 1792652922.2595541
+  },
+  "probe_filtering-retain-plain": {
+    "arm": "probe_filtering",
+    "mode": "retain",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792652922.2982764,
+    "status": "finished",
+    "implementation_commit": "1bbc763a8ad20f57412f4a6fee1cfc66e448c693",
+    "exit_code": 0,
+    "finished": 1792654704.3869421
+  },
+  "random_graft-retain-elicited": {
+    "arm": "random_graft",
+    "mode": "retain",
+    "elicited": true,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792656954.5880144,
+    "status": "finished",
+    "implementation_commit": "1bbc763a8ad20f57412f4a6fee1cfc66e448c693",
+    "exit_code": 0,
+    "finished": 1792658488.5401568
+  },
+  "random_graft-retain-plain": {
+    "arm": "random_graft",
+    "mode": "retain",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792658488.5750372,
+    "status": "finished",
+    "implementation_commit": "1bbc763a8ad20f57412f4a6fee1cfc66e448c693",
+    "exit_code": 0,
+    "finished": 1792659961.5221148
+  },
+  "probe_graft-both-elicited": {
+    "arm": "probe_graft",
+    "mode": "both",
+    "elicited": true,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792659977.3514633,
+    "status": "incomplete",
+    "implementation_commit": "1bbc763a8ad20f57412f4a6fee1cfc66e448c693",
+    "exit_code": 130,
+    "finished": 1792661421.228749
   }
 }

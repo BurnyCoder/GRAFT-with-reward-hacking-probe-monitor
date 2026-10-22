@@ -6,10 +6,6 @@ Updates: 1. Complete planned training: True.
 
 Method and hyperparameter rationale: [preregistered protocol](../../docs/protocol.md). Exact optimizer arguments are in the per-arm configuration JSON when the run has started. The smoke checkpoint is an engineering check and excluded from study comparisons.
 
-Observed audited behavior (an empty object means no unblinded study measurements):
+The smoke is excluded from study outcomes; its task result is recorded in [engineering](engineering.md).
 
-```json
-{}
-```
-
-Learning: completion of parameter updates alone does not establish hacking mitigation; inspect the blinded behavioral comparison and capability safeguard in [summary](summary.md).
+Learning: No audited study outcomes are available for this arm. See [summary](summary.md) for the paired comparisons and capability safeguard.

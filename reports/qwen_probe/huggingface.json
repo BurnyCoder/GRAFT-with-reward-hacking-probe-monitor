@@ -15,6 +15,21 @@
       "repo": "BurnyCoder/graft-qwen3-06b-qwen-judge-graft-pilot",
       "complete": true,
       "steps": 20
+    },
+    {
+      "repo": "BurnyCoder/graft-qwen3-06b-original-graft-pilot",
+      "complete": true,
+      "steps": 20
+    },
+    {
+      "repo": "BurnyCoder/graft-qwen3-06b-probe-filtering-pilot",
+      "complete": true,
+      "steps": 20
+    },
+    {
+      "repo": "BurnyCoder/graft-qwen3-06b-random-graft-pilot",
+      "complete": true,
+      "steps": 20
     }
   ]
 }

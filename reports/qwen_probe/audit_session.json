@@ -1,0 +1,7 @@
+{
+  "started_at": 1792640962.7911022,
+  "initial_pending": 32,
+  "buffer": 8,
+  "order": "sorted opaque UUIDs; no study mappings or monitor scores opened",
+  "implementation_commit": "d46997055fa46db8b0285a3e462be73cfe5c1bde"
+}
