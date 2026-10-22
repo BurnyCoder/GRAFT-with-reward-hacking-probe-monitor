@@ -95,7 +95,7 @@ Technology: Python, uv, PyTorch, Transformers, PEFT, Accelerate, Liger, Hugging 
 
 ## Publication and attribution
 
-After auditing/reporting, publish adapter checkpoints, configurations and model cards to an exploratory Hugging Face collection:
+Publish available adapter checkpoints, configurations and model cards with their current coverage reports to an exploratory Hugging Face collection:
 
 ```bash
 uv run hf auth login
@@ -103,5 +103,7 @@ uv run python -m experiments.qwen_probe publish
 ```
 
 The publisher uses the existing CLI login and an explicit upload allowlist. These are custom dual-MLP adapter checkpoints, not PEFT LoRA adapters; the model cards explain how to merge them with the pinned base. Large source/model downloads and raw logs stay local. The downloaded external detector is attributed and linked, not reuploaded.
+
+Published adapters are in the [pilot collection](https://huggingface.co/collections/BurnyCoder/qwen3-06b-graft-reward-hacking-probe-pilot-6ad9489d0f6a863cf37b1517). The [publication manifest](reports/qwen_probe/huggingface.json) lists available models, and [remote verification](reports/qwen_probe/hub_verification.json) records checked revisions and file hashes. Completed training and completed behavioral auditing are separate: interim checkpoints remain pilot artifacts with unresolved effectiveness.
 
 Upstream GRAFT: Ward*, Hu*, Wong, Hu, Woodworth, Turner and Cloud; see [paper](https://arxiv.org/abs/2610.17062), [NOTICE](NOTICE) and [licenses](LICENSES/). Probe code/artifacts: [farzingkh/reward-hacking](https://github.com/farzingkh/reward-hacking), pinned source under MIT; the Drive files have no separate license statement. Qwen models: [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B) and [Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B), Apache-2.0 model cards. Experimental claims are limited to the evidence recorded in this repository.
