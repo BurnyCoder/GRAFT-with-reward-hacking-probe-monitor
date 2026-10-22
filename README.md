@@ -76,6 +76,8 @@ flowchart LR
 
 The [monitor comparison](reports/qwen_probe/monitor-comparison.md) reports paired detection differences separately from behavioral mitigation. The [engineering report](reports/qwen_probe/engineering.md) records numerical checks and the audited real smoke, including its agent timeout and failed task outcome.
 
+[Analysis notes](docs/analysis.md) derive the training objective, paired estimands, ambiguity bounds and prospective task/seed sample requirements. They explain why this small pilot cannot establish a five-percentage-point noninferiority guarantee or general mitigation effectiveness.
+
 | Location | Contents |
 |---|---|
 | `experiments/qwen_probe/` | Modular phases and source/artifact manifest |
