@@ -6,6 +6,18 @@ from experiments.qwen_probe import training
 from experiments.qwen_probe.runtime import write_json
 
 
+def test_completed_smoke_does_not_block_resume_on_pending_study_audits(tmp_path, monkeypatch):
+    """Global: keep study batches blinded. Local: a certified smoke is not rerun when the controller resumes."""
+    from experiments.qwen_probe.__main__ import smoke
+    from experiments.qwen_probe import audit
+    write_json(tmp_path / "smoke-complete.json", {"completed_at": 1, "audited_trials": 1})
+    def forbid_new_packets(_):
+        """Local: resuming the study must not request labels from only its first completed treatment."""
+        raise AssertionError("Completed smoke must not inspect pending study audits")
+    monkeypatch.setattr(audit, "make_packets", forbid_new_packets)
+    assert smoke(tmp_path) is True
+
+
 @pytest.mark.parametrize("selected_arm", ["probe_graft", "qwen_judge_graft"])
 def test_selected_training_phase_creates_its_pools(tmp_path, monkeypatch, selected_arm):
     """Global: train --arm must not depend on smoke. Local: a frozen toy score produces a forget record."""

@@ -11,6 +11,8 @@ from .runtime import deadline, event, execute, setup, write_json
 
 def smoke(root):
     """Global: exercise the real chain before the pilot. Local: one update and one Docker task."""
+    if (root / "smoke-complete.json").exists():  # Local: a certified smoke never requests labels from an incomplete study batch on resume.
+        return True
     from .audit import finalize, make_packets
     from .data import write_pools
     from .evaluation import evaluate
