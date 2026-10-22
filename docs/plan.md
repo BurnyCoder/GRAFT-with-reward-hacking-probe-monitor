@@ -1,5 +1,15 @@
 # Implementation and delivery plan
 
+## Independent correction, 22 October 2026
+
+The user's requested correction is implemented without model execution. The [dated correction](../reports/qwen_probe/correction-2026-10-22/paper.md) contains the findings; [implementation notes](implementation.md#conversion-correction--22-october-2026) contain the reproduction commands.
+
+- [x] Preserve historical targets, checkpoints, annotations, analyses and paper files; record checksums before changes.
+- [x] Restore source completion semantics and include conversion identity plus converted messages in future dataset fingerprints; reject legacy cache reuse.
+- [x] Add conversion-to-parser regressions and validate every corrected target in the 192 locked source trajectories.
+- [x] Record degraded training and response-parser failures in a separate post-hoc correction, retaining the inconclusive mitigation conclusion.
+- [x] Run the relevant non-model checks; do not run training, inference or random-model tests.
+
 ## Later user-authorized follow-up, 22 October 2026
 
 The closed-pilot checklist below is historical and complete. The user's later request adds a separate [exploratory ablation follow-up](followup-protocol.md).

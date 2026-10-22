@@ -2,6 +2,29 @@
 
 This document records engineering decisions. The [protocol](protocol.md) defines scientific decisions; [generated results](../reports/qwen_probe/summary.md) report observations.
 
+## Conversion correction — 22 October 2026
+
+The [dated scientific correction](../reports/qwen_probe/correction-2026-10-22/paper.md) owns the observations and their interpretation. Historical reports, source annotations, converted pools, dataset locks and checkpoints remain unchanged. This is a post-hoc implementation repair, not a retrospective change to the preregistration.
+
+`sft/scripts/data_prep.py` now converts only `bash_command` calls into `commands` and recovers `task_complete: true` from `mark_task_complete`, retaining explicit legacy completion fields. Unknown tools fail rather than silently losing their semantics. Importing the converter no longer creates output directories. These rules invert [Harbor's pinned ATIF emitter](https://github.com/harbor-framework/harbor/blob/290ab985edc6915dd60fb1a0d369fedf10d213a1/src/harbor/agents/terminus_2/terminus_2.py#L1482).
+
+`experiments/qwen_probe/conversion.py` checks each new inventory trajectory against the pinned parser and source commands/completion. Parser errors, dropped commands and altered semantics fail preparation. Nonfatal newline warnings are counted, while source keystrokes remain exact; a completion flag can otherwise hide invalid commands by converting errors into warnings. Conversion version `atif-terminus-completion-v2` and the converter's SHA-256 enter inventory provenance and dataset locks. Dataset fingerprints also hash the actual converted messages independently of monitor-normalized input hashes. Pool creation verifies the frozen identity before writing. Preparation and direct training refuse legacy/stale conversion metadata before downloads, preflight or updates. Existing inventories cannot be overwritten through the inventory builder.
+
+With the pinned submodules initialized, the regression checks require only the root uv environment:
+
+```bash
+uv run --frozen pytest -q tests/test_conversion.py tests/test_phases.py
+```
+
+To reproduce the complete saved-data check, set `GRAFT_ARTIFACTS=artifacts/qwen_probe` in `.env` and retain the original `data/lock.json`, `data/no_intervention/gr_train_retain.jsonl`, both affected arms' `checkpoints/*/metrics.jsonl`, `audit/unblinded.json` and `audit/packets/*.json`. Those local raw artifacts are intentionally excluded from Git. A source checkout alone supports the synthetic regression checks; the published correction includes per-record source paths and hashes for the historical-data checks.
+
+```bash
+uv run --frozen python -m experiments.qwen_probe.conversion_audit \
+  --output .cache/conversion-check.json
+```
+
+The output path must be new and inside the workspace. This separate command reads the saved training pool, reconverts its locked source trajectories in memory, checks every target, summarizes saved losses and reparses saved responses. It writes a new JSON report plus UTC logs; it never loads a tokenizer or model, executes shell commands from a trajectory, rewrites historical evidence, or starts/resets the study deadline. Supplemental diagnostics are explicitly post hoc. Published checks are in [checks.json](../reports/qwen_probe/correction-2026-10-22/checks.json). The full suite includes model execution; only the documented non-model subset was run for this correction.
+
 ## Reuse and compatibility
 
 The extension calls the existing SFT trainer, `DualMLPAdapter`, `SplitMomentAdamW`, ATIF conversion, merge implementation, dataset builder and pinned Harbor CLI. The original SFT/RL workflows remain available in their directories. New behavior is opt-in through trainer flags. The root `uv` environment locks compatible releases; Harbor is pinned to the repository's Git submodule revision rather than upgraded across the source experiment.

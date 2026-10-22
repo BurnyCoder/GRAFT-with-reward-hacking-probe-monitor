@@ -8,6 +8,7 @@ import sys  # Local: one locked environment.
 import time  # Local: don't start work past the shared cap.
 
 from .data import ARMS, write_pools
+from .conversion import require_current_conversion  # Local: direct train_arm calls must also reject historical conversion caches.
 from .download import MANIFEST
 from .runtime import ROOT, deadline, event, execute, file_hash, fingerprint, read_json, write_json
 
@@ -27,6 +28,7 @@ def verify_published(root):
 
 def train_arm(root, arm, *, smoke=False):
     """Global: matched recipe. Local: only monitor treatment and optimizer baseline differ."""
+    require_current_conversion(root)  # Local: stop before starting a deadline, publication write or parameter update.
     end = deadline(root, start=True)
     if time.time() >= end:
         event("training_incomplete", arm=arm, reason="deadline")

@@ -3,6 +3,8 @@ import json  # Local: inspect the trainer's actual JSONL interchange.
 import pytest  # Local: the same phase contract applies to both real monitors.
 
 from experiments.qwen_probe import training
+from experiments.qwen_probe.conversion import conversion_identity  # Local: fixtures must satisfy the current target contract.
+from experiments.qwen_probe.data import fix_dataset  # Local: exercise an actual frozen dataset before routing pools.
 from experiments.qwen_probe.runtime import write_json
 
 
@@ -22,10 +24,13 @@ def test_completed_smoke_does_not_block_resume_on_pending_study_audits(tmp_path,
 def test_selected_training_phase_creates_its_pools(tmp_path, monkeypatch, selected_arm):
     """Global: train --arm must not depend on smoke. Local: a frozen toy score produces a forget record."""
     identities = [f"{index:02}" for index in range(48)]  # Local: honor the balanced batch-multiple contract.
-    write_json(tmp_path / "data/lock.json", {"train": identities})
     write_json(tmp_path / "data/inventory.json", [{"id": identity, "label": index % 2, "tokens": 2,
+               "task": "toy", "partition": "train", "content_hash": identity,
                "classification": "hack" if index % 2 else "baseline",
                "messages": [{"role": "assistant", "content": "example"}]} for index, identity in enumerate(identities)])
+    write_json(tmp_path / "data/provenance.json", {"sft_conversion": conversion_identity(tmp_path)})
+    write_json(tmp_path / "downloads.json", {"model_files": {"learner": {"tokenizer.json": "toy"}}})
+    fix_dataset(tmp_path, 4096)  # Local: no tokenization or model execution; only freeze the toy metadata.
     write_json(tmp_path / "monitor/scores.json", {identity: {"score": 0.9} for identity in identities})
     write_json(tmp_path / "monitor/threshold.json", {"threshold": 0.5})
     write_json(tmp_path / "judge/scores.json", {identity: {"score": 0.7} for identity in identities})
