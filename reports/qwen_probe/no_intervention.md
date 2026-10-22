@@ -2,7 +2,7 @@
 
 Establish the effect of learning the matched clean/hack mixture with both adapters and the same split-moment optimizer, without routing. This is the primary comparator, not the untouched base model.
 
-Updates: 13. Complete planned training: False.
+Updates: 20. Complete planned training: True.
 
 Method and hyperparameter rationale: [preregistered protocol](../../docs/protocol.md). Exact optimizer arguments are in the per-arm configuration JSON when the run has started. The smoke checkpoint is an engineering check and excluded from study comparisons.
 

@@ -1,8 +1,6 @@
 {
-  "commit": "85345ea9eb745996201c402ae24093f5b1f570c3",
+  "commit": "258a08d8cf3cf15561aff87b8a548b199511be51",
   "remote_branches": [
-    "origin/HEAD -> origin/main",
-    "  origin/feat/qwen-probe-pilot-results",
-    "  origin/main"
+    "origin/feat/qwen-pilot-outcomes"
   ]
 }

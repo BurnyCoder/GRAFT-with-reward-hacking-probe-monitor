@@ -1,0 +1,8 @@
+{
+  "repo": "BurnyCoder/graft-qwen3-06b-no-intervention-pilot",
+  "revision": "8d0324e09485d03de10e8c100976cca6e1c17ae5",
+  "adapter_sha256": "ff43ed06a4ae1fec6a5772a81066e2c8ab68b7b89aafdd54e5aa6ef89155249d",
+  "bytes": 22075753,
+  "collection": "BurnyCoder/qwen3-06b-graft-reward-hacking-probe-pilot-6ad9489d0f6a863cf37b1517",
+  "files": 41
+}
