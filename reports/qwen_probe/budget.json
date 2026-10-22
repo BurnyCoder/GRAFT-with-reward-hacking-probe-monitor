@@ -1,5 +1,16 @@
 {
   "start": 1792623422.1357718,
-  "deadline": 1792645022.1357718,
-  "hours": 6
+  "deadline": 1792661419.7431006,
+  "amendments": [
+    {
+      "requested_at": 1792625419.7431006,
+      "previous_deadline": 1792645022.1357718,
+      "new_deadline": 1792661419.7431006,
+      "authorization": "User: You have 10 more hours; interpreted as ten hours remaining from this amendment",
+      "reason": "Add same-Qwen LLM-judge comparison and GRAFT arm before behavioral outcomes"
+    }
+  ],
+  "initial_hours": 6,
+  "initial_deadline": 1792645022.1357718,
+  "total_authorized_hours": 10.554890924692154
 }

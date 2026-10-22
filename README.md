@@ -72,6 +72,10 @@ flowchart LR
 
 ![Completed training updates; incomplete arms remain visible](reports/qwen_probe/training.png)
 
+![Frozen probe and same-Qwen judge validation with task-bootstrap intervals](reports/qwen_probe/detector.png)
+
+The [monitor comparison](reports/qwen_probe/monitor-comparison.md) reports paired detection differences separately from behavioral mitigation. The [engineering report](reports/qwen_probe/engineering.md) records numerical checks and the audited real smoke, including its agent timeout and failed task outcome.
+
 | Location | Contents |
 |---|---|
 | `experiments/qwen_probe/` | Modular phases and source/artifact manifest |
