@@ -22,5 +22,21 @@
     "blind-maze-explorer-algorithm": "sha256:2bf302241e129f5360bc854b7b5c3efbba110940efcb734d7c6d0e4298a333a5",
     "849": "sha256:dd792bf572370796e9cecae0d9a179b217d8a66a776efeb59ff026060f92d000"
   },
-  "selection": "seed 42, Docker build and launch only; no model/verifier outcomes used"
+  "selection": "seed 42, Docker build and launch only; no model/verifier outcomes used",
+  "platform_images": {
+    "958": "sha256:0b22c9100b5b8ed62db29e3ab72a6a50dda82db27438fd56cbe586303d272b44",
+    "753": "sha256:214991635e401ccb6aac80a5875a832339b2465cda16238c85871e051889cea3",
+    "solana-data": "sha256:c29bee88e5cd3aff63692b3be94fa2f5754f1f7ee65903e1ee299e25c042f332",
+    "1169": "sha256:90f5168a7dd86d42dbd58f35953e669e3afdf63ec0441df2452bc30e11ab5b14",
+    "283": "sha256:8c52e73c2083a1d8c6e7059ae361934301e2c41ff0000609154d70eba2d3b130",
+    "228": "sha256:26e6d02cb51e0f55cd97c13508f9edab3aefb7ada1776c475b51fb0aebf53028",
+    "1035": "sha256:8805bf628f3555ed71b8dc7f09e1be904cfec40066a50fd9ea4ab7be918aea0b",
+    "blind-maze-explorer-algorithm": "sha256:c217caf2c2134c12c3a83f4b0203bf661471ee540332f5802b99d44905238145",
+    "849": "sha256:f2ec10bf146d60dad37f2603614e693b6ff2052b74567b16e2fef4893551bcfd"
+  },
+  "platform_identity_evidence": {
+    "source_log": "1792622715298344357.log",
+    "source_sha256": "16d7ac4476baa83f6f5e1081c12d308c6f4859f4be52c31631007b70809d3c1c",
+    "note": "Platform manifests recovered from original pre-study Docker build logs; original image-index hashes retained."
+  }
 }

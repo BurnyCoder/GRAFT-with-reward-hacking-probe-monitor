@@ -1,0 +1,6 @@
+{
+  "at": 1792636585.651459,
+  "old_controller": 180431,
+  "completed_trainer": 301887,
+  "reason": "Load published Docker image-retention and completed-smoke resume fixes; preserve all completed checkpoints and the fixed deadline."
+}
