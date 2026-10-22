@@ -92,6 +92,9 @@ def evaluate(root, *, modes=None, smoke=False):
     index_path = root / "evaluation/index.json"
     index = read_json(index_path) if index_path.exists() else {}
     for arm, mode in modes:
+        conditions = [False] if smoke else [True, False]  # Local: resuming completed jobs needs no GPU server.
+        if all(f"{arm}-{mode}-{'elicited' if condition else 'plain'}" in index for condition in conditions):
+            continue
         if arm != "base" and not (root / "checkpoints" / arm / "progress.json").exists():
             event("evaluation_missing_model", arm=arm, mode=mode)
             continue
@@ -103,7 +106,7 @@ def evaluate(root, *, modes=None, smoke=False):
             break
         model_path = merge_model(root, arm, mode)
         with model_server(model_path, root) as api:
-            for elicited in ([False] if smoke else [True, False]):
+            for elicited in conditions:
                 name = f"{arm}-{mode}-{'elicited' if elicited else 'plain'}"
                 if name in index:  # Local: never repeat failed episodes selectively.
                     continue

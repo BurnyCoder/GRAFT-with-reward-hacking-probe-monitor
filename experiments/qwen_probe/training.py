@@ -8,7 +8,8 @@ import sys  # Local: one locked environment.
 import time  # Local: don't start work past the shared cap.
 
 from .data import ARMS, write_pools
-from .runtime import ROOT, deadline, event, execute, read_json, write_json
+from .download import MANIFEST
+from .runtime import ROOT, deadline, event, execute, file_hash, fingerprint, read_json, write_json
 
 
 def verify_published(root):
@@ -87,12 +88,19 @@ def merge_model(root, arm, mode):
     checkpoint = root / "checkpoints" / arm / "adapter_state_dict.pt"
     if not checkpoint.exists():
         raise FileNotFoundError(f"No trained checkpoint for {arm}")
-    destination = root / "merged" / f"{arm}-{mode}"
-    if (destination / "config.json").exists():  # Local: per-run checkpoints are immutable once finished.
+    identity = {"model": MANIFEST["learner"], "adapter_sha256": file_hash(checkpoint), "mode": mode,
+                "tokenizer": read_json(root / "downloads.json")["model_files"]["learner"],
+                "data": read_json(root / "checkpoints" / arm / "configuration.json")["data_fingerprint"],
+                "merge_configuration": {"width": 64, "alpha": 32, "implementation": "unsharded-tied-v1"}}
+    destination = root / "merged" / f"{arm}-{mode}-{fingerprint(identity)[:16]}"
+    if (destination / "merge_manifest.json").exists():  # Local: a manifest is written only after all weights are saved.
+        if read_json(destination / "merge_manifest.json") != identity:
+            raise ValueError("Merged-model cache identity changed")
         return destination
     sys.path.insert(0, str(ROOT / "sft"))
     from scripts.eval.merge_adapter import merge
     retain, forget = {"both": (1, 1), "retain": (1, 0), "forget": (0, 1)}[mode]
     merge(root / "models/learner", checkpoint, destination, d_retain=64, d_forget=64,
           lora_alpha=32, retain_scale=retain, forget_scale=forget)
+    write_json(destination / "merge_manifest.json", identity)  # Local: never reuse a partially written merge.
     return destination
