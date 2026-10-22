@@ -1,6 +1,6 @@
 # Preregistered Qwen3-0.6B GRAFT pilot with LLM-as-a-Judge and Probe Monitors
 
-Author: Libor Burian. Protocol version: 1.0, 2026-10-22. This document is committed and pushed before any real-model parameter update. Tests on randomly initialized miniature models are engineering checks. This is an exploratory, single-seed adaptation of [GRAFT](https://arxiv.org/abs/2610.17062), not a replication at the original scale.
+Author: Libor Burian. Initial protocol version: 1.0, 2026-10-22. The initial scientific protocol and judge/budget amendment were committed and pushed before any real-model parameter update. Later presentation changes are dated below. Tests on randomly initialized miniature models are engineering checks. This is an exploratory, single-seed adaptation of [GRAFT](https://arxiv.org/abs/2610.17062), not a replication at the original scale.
 
 ## User amendment, 2026-10-21 23:30 UTC
 
