@@ -99,15 +99,17 @@ def harbor_command(prepared, api, name, root):
             "--job-name", name, "--jobs-dir", str(Path(root) / "evaluation/jobs")]
 
 
-def evaluate(root, *, modes=None, smoke=False):
+def evaluate(root, *, modes=None, smoke=False, conditions=None):
     """Global: fixed coverage and paired tasks. Local: run real Docker episodes through Harbor."""
     chosen = read_json(root / "evaluation/tasks.json")
     tasks = [chosen["smoke_task"]] if smoke else chosen["tasks"]
     modes = [("smoke", "retain")] if smoke else (modes or MODES)
     index_path = root / "evaluation/index.json"
     index = read_json(index_path) if index_path.exists() else {}
+    conditions = [False] if smoke else ([True, False] if conditions is None else conditions)  # Local: an explicit follow-up can run only the previously unattempted prompt.
+    if not conditions or any(type(value) is not bool for value in conditions) or len(set(conditions)) != len(conditions):
+        raise ValueError("Evaluation conditions must be a nonempty unique list of booleans")  # Local: reject ambiguous plans before loading a model.
     for arm, mode in modes:
-        conditions = [False] if smoke else [True, False]  # Local: resuming completed jobs needs no GPU server.
         if all(f"{arm}-{mode}-{'elicited' if condition else 'plain'}" in index for condition in conditions):
             continue
         if arm != "base" and not (root / "checkpoints" / arm / "progress.json").exists():

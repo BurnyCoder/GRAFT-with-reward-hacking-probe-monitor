@@ -95,7 +95,7 @@ def result_figures(destination, results):
     return figures
 
 
-def paper(destination, sections, figures, behavior=None):
+def paper(destination, sections, figures, behavior=None, *, subtitle="Exploratory pilot"):
     """Global: one source for paper text and PDF. Local: ReportLab layout with actual result figures."""
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
@@ -104,8 +104,8 @@ def paper(destination, sections, figures, behavior=None):
     outcome_style = ParagraphStyle("OutcomeCell", parent=styles["BodyText"], fontSize=7.5, leading=9.5, spaceBefore=0, spaceAfter=0)
     title = "Qwen3-0.6B GRAFT with LLM-as-a-Judge and Probe Monitors"  # Local: one title keeps both methods visible across paper formats and metadata.
     story = [Paragraph(title, styles["Title"]),
-             Paragraph("Libor Burian · Exploratory pilot · 22 October 2026", styles["Normal"]), Spacer(1, 16)]
-    markdown = [f"# {title}", "\nLibor Burian — exploratory pilot, 22 October 2026\n"]
+             Paragraph(f"Libor Burian · {escape(subtitle)} · 22 October 2026", styles["Normal"]), Spacer(1, 16)]
+    markdown = [f"# {title}", f"\nLibor Burian — {subtitle.lower()}, 22 October 2026\n"]
     for heading, text in sections:
         markdown.extend([f"## {heading}\n", text + "\n"])
         story.append(Paragraph(escape(heading), styles["Heading2"]))

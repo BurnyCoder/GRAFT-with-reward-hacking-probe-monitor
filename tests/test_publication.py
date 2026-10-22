@@ -49,3 +49,15 @@ def test_staged_report_links_resolve_to_published_methodology(tmp_path):
     assert '/blob/main/docs/protocol.md)' in (stage / "summary.md").read_text()
     assert '[evidence](results.json)' in (stage / "summary.md").read_text()
     assert (stage / "results.json").read_bytes() == (source / "results.json").read_bytes()
+
+
+def test_nested_followup_links_keep_correct_methodology_destination(tmp_path):
+    """Global: later supplements remain reproducible on the Hub. Local: nested reports need recursive link repair."""
+    from experiments.qwen_probe.publish import stage_reports
+    source, stage = tmp_path / "source", tmp_path / "stage"
+    (source / "followup").mkdir(parents=True)
+    (source / "followup/summary.md").write_text('[plan](../../../docs/followup-protocol.md) [pilot](../summary.md)')
+    stage_reports(source, stage)
+    text = (stage / "followup/summary.md").read_text()
+    assert '/blob/main/docs/followup-protocol.md)' in text
+    assert '[pilot](../summary.md)' in text

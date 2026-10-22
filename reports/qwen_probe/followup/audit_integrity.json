@@ -1,0 +1,14 @@
+{
+  "verified_at": 1792680583.4306731,
+  "packet_count": 40,
+  "judgment_count": 40,
+  "judgments_sha256": "24b046816398f3a5168432efbec7e27c4c336e52bde52e291ed81bc7d5ef852a",
+  "last_judgment_at": 1792680563.7190046,
+  "all_packet_fingerprints_match": true,
+  "controller_closed": true,
+  "private_mapping_not_inspected_before_freeze": true,
+  "all_complete_packet_pages_reviewed": true,
+  "original_outcomes_already_known": true,
+  "independent_audit": false,
+  "fully_naive_audit": false
+}

@@ -1,0 +1,10 @@
+{
+  "status": "closed",
+  "finished_at": 1792679255.388837,
+  "publication": {
+    "commit": "13136be8b099f46b827d4b83ca694eea3697bf6b",
+    "remote_branches": [
+      "origin/feature/complete-pilot-ablations"
+    ]
+  }
+}

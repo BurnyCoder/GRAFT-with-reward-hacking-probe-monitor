@@ -1,0 +1,16 @@
+{
+  "recorded_at_utc": "2026-10-22T13:08:00Z",
+  "user_report": "sudo apt upgrade during follow-up collection",
+  "observed_signature": "shim was started through the deprecated API but was built against the new API",
+  "observed_wholly_unstarted_trials": 8,
+  "pre_upgrade_versions": "not captured",
+  "after_restart_versions": {"docker": "29.9.2", "containerd": "v2.4.2", "runc": "1.5.2"},
+  "containerd_service_started_at_utc": "2026-10-22T12:52:39Z",
+  "docker_service_started_at_utc": "2026-10-22T12:53:34Z",
+  "assistant_restarted_shared_services": false,
+  "deadline_utc": "2026-10-22T14:52:23.731Z",
+  "host_runtime_equality": "unresolved; executable task image equality is separately checked",
+  "behavioral_outputs_inspected": false,
+  "source": "https://github.com/containerd/containerd/blob/v2.4.2/pkg/shim/compat.go",
+  "amendment": "docs/followup-protocol.md"
+}

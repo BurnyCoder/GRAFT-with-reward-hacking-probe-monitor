@@ -1,0 +1,6 @@
+{
+  "started_at": 1792679291.0509913,
+  "finished_at": 1792679315.7638383,
+  "command": "uv run pytest -q",
+  "exit_code": 0
+}

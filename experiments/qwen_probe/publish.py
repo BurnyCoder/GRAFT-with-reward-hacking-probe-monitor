@@ -5,6 +5,7 @@ Source: https://huggingface.co/docs/huggingface_hub/guides/cli
 """
 import json  # Local: structured Hub output.
 import os  # Local: use existing CLI authentication with separate model caches.
+import re  # Local: resolve methodology links at any report nesting depth; https://docs.python.org/3/library/re.html#re.sub.
 import shutil  # Local: stage an explicit file allowlist.
 import subprocess  # Local: resolve authenticated username and collection slug.
 
@@ -20,8 +21,8 @@ def stage_reports(source, destination):
     Source: https://huggingface.co/docs/hub/model-cards — Hub cards and reports use Markdown links.
     """
     shutil.copytree(source, destination, dirs_exist_ok=True)  # Local: numerical evidence and figures are copied byte-for-byte.
-    for path in destination.glob("*.md"):  # Local: Hub's report/ directory is shallower than reports/qwen_probe/ in Git.
-        path.write_text(path.read_text().replace("](../../docs/", f"]({REPOSITORY}/blob/main/docs/"))  # Local: leave within-report evidence links intact.
+    for path in destination.rglob("*.md"):  # Local: include the separate follow-up supplement's nested Markdown files.
+        path.write_text(re.sub(r"\]\((?:\.\./)+docs/", f"]({REPOSITORY}/blob/main/docs/", path.read_text()))  # Local: leave within-report evidence links intact.
 
 
 def hub_environment():
@@ -74,6 +75,13 @@ def publish(root):
     study_status = results.get("conclusion", "Study outcomes are not yet available.")
     if "coverage" in results:
         study_status += f" Audited episodes: {results['coverage']['audited_study_episodes']}/{results['coverage']['planned_study_episodes']}. " + " ".join(results.get("reasons", []))
+    followup_path = ROOT / "reports/qwen_probe/followup/results.json"  # Local: later evidence never replaces the closed pilot counts.
+    if followup_path.exists():
+        coverage = read_json(followup_path)["coverage"]
+        study_status += (f"\n\nA separately authorized exploratory follow-up audited {coverage['followup_audited']}/40 additional trial records, "
+                         f"bringing distinct record coverage to {coverage['combined_unique']}/160. Setup failures remain unknown; record coverage does not imply successful execution. Original outcomes were already known; "
+                         "the pilot's primary conclusion is unchanged. See [follow-up evidence](report/followup/summary.md). "
+                         "Checkpoint tensors are unchanged; no retraining or repeated original attempt was performed.")
     published = []
     for arm in ARMS:
         folder = root / "checkpoints" / arm
@@ -89,6 +97,8 @@ def publish(root):
         for filename in ("artifacts.json", "task_split.json"):
             shutil.copy2(ROOT / "experiments/qwen_probe" / filename, stage / filename)
         shutil.copy2(ROOT / "docs/protocol.md", stage / "protocol.md")
+        if followup_path.exists():
+            shutil.copy2(ROOT / "docs/followup-protocol.md", stage / "followup-protocol.md")  # Local: preserve the later collection boundary alongside its report.
         stage_reports(ROOT / "reports/qwen_probe", stage / "report")  # Local: keep cross-site methodology citations usable.
         card = f"""---
 license: apache-2.0

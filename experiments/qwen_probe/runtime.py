@@ -18,13 +18,15 @@ ROOT = Path(__file__).resolve().parents[2]  # Local: package anchor; global: rep
 LOGGER = logging.getLogger("qwen_probe")  # Local: one namespace; global: consistent records.
 
 
-def setup():
+def setup(subdirectory=None):
     """Global: initialize reproducible paths. Local: load secrets without printing them."""
     load_dotenv(ROOT / ".env.example", override=False)  # Local: documented defaults.
     load_dotenv(ROOT / ".env", override=True)  # Local: user's private configuration.
     for key in ("HF_HOME", "HF_HUB_CACHE", "HF_DATASETS_CACHE", "TORCH_HOME", "TRITON_CACHE_DIR", "XDG_CACHE_HOME"):
         os.environ[key] = str((ROOT / os.environ[key]).resolve())  # Local: child-safe absolute paths.
     root = (ROOT / os.environ.get("GRAFT_ARTIFACTS", "artifacts/qwen_probe")).resolve()  # Local: result root.
+    if subdirectory is not None:  # Local: a separately authorized follow-up keeps its own transcripts and clock.
+        root = root / subdirectory
     root.mkdir(parents=True, exist_ok=True)  # Local: create only requested workspace files.
     if not LOGGER.handlers:  # Local: avoid duplicated logs when importing phases.
         logs = root / "logs"  # Local: all complete transcripts live together.

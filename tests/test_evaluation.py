@@ -45,3 +45,57 @@ def test_restored_images_must_match_frozen_identity(tmp_path, monkeypatch):
     monkeypatch.setattr(tasks, "original_task", lambda _: tmp_path)
     with pytest.raises(RuntimeError, match="identity"):
         tasks.ensure_task_images(tmp_path)
+
+
+@pytest.mark.parametrize("blocker", [None, "agent", "verifier", "trajectory", "other_error"])
+def test_shim_upgrade_recovery_requires_explicit_unstarted_evidence(tmp_path, blocker):
+    """Global: recover infrastructure only. Local: the default policy and any model evidence block a retry."""
+    from experiments.qwen_probe.recovery import recover_setup_failures
+    from experiments.qwen_probe.runtime import file_hash
+    metadata = {"tasks": ["a"], "status": "finished", "smoke": False}
+    index = tmp_path / "evaluation/index.json"
+    trial = tmp_path / "evaluation/jobs/job/a/result.json"
+    result = {"task_name": "a", "exception_info": {"exception_type": "RuntimeError", "exception_message":
+              "Docker compose command failed: failed to start shim: shim was started through the deprecated API but was built against the new API"}}
+    if blocker == "agent":
+        result["agent_execution"] = {"started_at": "2026-10-22T00:00:00"}
+    elif blocker == "verifier":
+        result["verifier_result"] = {"rewards": {"reward": 0}}
+    elif blocker == "trajectory":
+        write_json(trial.parent / "agent/trajectory.json", {})
+    elif blocker == "other_error":
+        result["exception_info"]["exception_message"] = "Docker compose failed for an unrelated reason"
+    write_json(index, {"job": metadata})
+    write_json(trial, result)
+    digest = file_hash(trial)
+    assert recover_setup_failures(tmp_path) == []  # Local: the original image-only policy stays unchanged.
+    recovered = recover_setup_failures(tmp_path, failure="shim-upgrade")
+    assert len(recovered) == (1 if blocker is None else 0)
+    if blocker is None:
+        archived = tmp_path / "evaluation/setup_failures/job/a/result.json"
+        assert file_hash(archived) == digest and recovered[0]["failure"] == "shim-upgrade"
+        write_json(index, {"job": metadata})  # Local: even an identical subsequent setup failure cannot qualify twice.
+        write_json(trial, result)
+        assert recover_setup_failures(tmp_path, failure="shim-upgrade") == []
+
+
+@pytest.mark.parametrize("blocker", [None, "model_request", "job_directory", "missing_interval"])
+def test_uninitialized_launcher_requires_absent_job_and_no_requests(tmp_path, blocker):
+    """Global: no first attempt is inferred from a missing result alone. Local: require both startup and journal evidence."""
+    from experiments.qwen_probe.recovery import recover_setup_failures
+    metadata = {"tasks": ["a"], "status": "incomplete", "smoke": False, "exit_code": 1, "started": 10, "finished": 20}
+    if blocker == "missing_interval":
+        del metadata["started"]
+    write_json(tmp_path / "evaluation/index.json", {"job": metadata})
+    write_json(tmp_path / "evaluation/generations/server/call.json", {"started_at": 15 if blocker == "model_request" else 5})
+    if blocker == "job_directory":
+        (tmp_path / "evaluation/jobs/job").mkdir(parents=True)
+    assert recover_setup_failures(tmp_path, failure="shim-upgrade") == []
+    recovered = recover_setup_failures(tmp_path, failure="shim-upgrade", allow_uninitialized=True)
+    assert len(recovered) == (1 if blocker is None else 0)
+    if blocker is None:
+        assert recovered[0]["trial_count"] == 0 and recovered[0]["uninitialized_tasks"] == 1
+        assert recovered[0]["model_requests_in_interval"] == 0
+        assert (tmp_path / "evaluation/setup_failures/job/recovery.json").exists()
+        write_json(tmp_path / "evaluation/index.json", {"job": metadata})
+        assert recover_setup_failures(tmp_path, failure="shim-upgrade", allow_uninitialized=True) == []

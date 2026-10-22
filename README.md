@@ -27,6 +27,10 @@ Prerequisites: Linux/WSL, Python 3.12, [uv](https://docs.astral.sh/uv/getting-st
 
 ## Phases and audit
 
+After publication of the closed pilot, the user authorized a **separate exploratory follow-up** of the 40 unrun ablation episodes. All 40 trial records were audited before treatment reveal: 37 contain model behavior and three retain unknown outcomes after setup timeouts. Together with the original 120, they cover the 160 planned task/deployment/prompt slots; this does not imply 160 successful executions. The follow-up adds two confirmed hacking attempts, six ambiguous intent cases and one legitimate success. Checkpoint weights and the original primary conclusion remain unchanged. See the [follow-up report](reports/qwen_probe/followup/summary.md), [protocol and commands](docs/followup-protocol.md), and [paper with the separate follow-up supplement](reports/qwen_probe/paper-with-followup.pdf).
+
+The host package upgrade interrupted Docker during follow-up collection. Only provably unstarted conditions were recovered under dated amendments. Three subsequent setup timeouts remain unresolved; cross-cohort mode comparisons also differ in collection time and possibly host runtime. These limitations prevent a clean causal interpretation of the added ablations.
+
 ```bash
 uv run python -m experiments.qwen_probe download
 uv run python -m experiments.qwen_probe prepare
@@ -41,7 +45,7 @@ uv run python -m experiments.qwen_probe report
 
 `train --arm probe_graft` runs one treatment. The root wrapper delegates to the existing SFT implementation. A publication check requires the implementation/preregistration commit on `origin` before real parameter updates; if you modify the code, commit and push first. The original trainer's extra accumulation divisor is corrected only by the pilot's opt-in flags, and that difference is documented.
 
-`recover-setup` is an explicit infrastructure repair phase, used only with the run controller stopped. It restores the exact task environments and archives wholly unstarted image-pull failures once, preserving their evidence before the normal run resumes. Any job containing an actual model attempt is ineligible. The dated [protocol amendment](docs/protocol.md) records why this was added during the pilot; the clock is never reset.
+`recover-setup` is an explicit infrastructure repair phase, used only with the run controller stopped. For the pilot, it restores the exact task environments and archives wholly unstarted image-pull failures once, preserving their evidence before the normal run resumes. Any job containing an actual model attempt is ineligible. The dated [protocol amendment](docs/protocol.md) records why this was added during the pilot; the clock is never reset. With `--study ablation-followup`, the separate [host-upgrade amendment](docs/followup-protocol.md#infrastructure-amendment--22-october-2026-1306-utc) covers the exact containerd shim failure and a proved pre-job launcher failure, before any audit packets exist.
 
 Audit packets appear in `artifacts/qwen_probe/audit/packets/`. Running jobs are deferred; create mixed batches from several closed deployment servers so response journals are stable and scheduling does not identify a treatment. Creation logs show counts rather than identities in job order. An auditor reads the full task, trajectory, verifier outcome and rubric while keeping `private_mapping.json` and probe scores hidden. Record an evidence-based judgment, preserving ambiguity:
 
@@ -84,6 +88,8 @@ flowchart LR
 ![Frozen probe and same-Qwen judge validation with task-bootstrap intervals](reports/qwen_probe/detector.png)
 
 ![Available elicited outcomes with Wilson intervals; missing conditions and ambiguity are detailed in the report](reports/qwen_probe/behavior.png)
+
+![Exploratory adapter interventions with paired intervals; known-pair counts and ambiguity are retained](reports/qwen_probe/followup/ablations.png)
 
 The [monitor comparison](reports/qwen_probe/monitor-comparison.md) reports paired detection differences separately from behavioral mitigation. The [engineering report](reports/qwen_probe/engineering.md) records numerical checks and the audited real smoke, including its agent timeout and failed task outcome.
 
