@@ -78,8 +78,8 @@ def publish(root):
     followup_path = ROOT / "reports/qwen_probe/followup/results.json"  # Local: later evidence never replaces the closed pilot counts.
     if followup_path.exists():
         coverage = read_json(followup_path)["coverage"]
-        study_status += (f"\n\nA separately authorized exploratory follow-up audited {coverage['followup_audited']}/40 additional episodes, "
-                         f"bringing distinct coverage to {coverage['combined_unique']}/160. Original outcomes were already known; "
+        study_status += (f"\n\nA separately authorized exploratory follow-up audited {coverage['followup_audited']}/40 additional trial records, "
+                         f"bringing distinct record coverage to {coverage['combined_unique']}/160. Setup failures remain unknown; record coverage does not imply successful execution. Original outcomes were already known; "
                          "the pilot's primary conclusion is unchanged. See [follow-up evidence](report/followup/summary.md). "
                          "Checkpoint tensors are unchanged; no retraining or repeated original attempt was performed.")
     published = []

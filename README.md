@@ -27,7 +27,9 @@ Prerequisites: Linux/WSL, Python 3.12, [uv](https://docs.astral.sh/uv/getting-st
 
 ## Phases and audit
 
-After publication of the closed pilot, the user authorized completion of the 40 unrun ablation episodes. This is a **separate exploratory follow-up**, with fixed saved checkpoints, its own three-hour cap and separate audits. The original pilot's deadline, results and conclusion remain unchanged. See the [follow-up protocol and commands](docs/followup-protocol.md); follow-up results are pending.
+After publication of the closed pilot, the user authorized a **separate exploratory follow-up** of the 40 unrun ablation episodes. All 40 trial records were audited before treatment reveal: 37 contain model behavior and three retain unknown outcomes after setup timeouts. Together with the original 120, they cover the 160 planned task/deployment/prompt slots; this does not imply 160 successful executions. The follow-up adds two confirmed hacking attempts, six ambiguous intent cases and one legitimate success. Checkpoint weights and the original primary conclusion remain unchanged. See the [follow-up report](reports/qwen_probe/followup/summary.md), [protocol and commands](docs/followup-protocol.md), and [paper with the separate follow-up supplement](reports/qwen_probe/paper-with-followup.pdf).
+
+The host package upgrade interrupted Docker during follow-up collection. Only provably unstarted conditions were recovered under dated amendments. Three subsequent setup timeouts remain unresolved; cross-cohort mode comparisons also differ in collection time and possibly host runtime. These limitations prevent a clean causal interpretation of the added ablations.
 
 ```bash
 uv run python -m experiments.qwen_probe download
@@ -86,6 +88,8 @@ flowchart LR
 ![Frozen probe and same-Qwen judge validation with task-bootstrap intervals](reports/qwen_probe/detector.png)
 
 ![Available elicited outcomes with Wilson intervals; missing conditions and ambiguity are detailed in the report](reports/qwen_probe/behavior.png)
+
+![Exploratory adapter interventions with paired intervals; known-pair counts and ambiguity are retained](reports/qwen_probe/followup/ablations.png)
 
 The [monitor comparison](reports/qwen_probe/monitor-comparison.md) reports paired detection differences separately from behavioral mitigation. The [engineering report](reports/qwen_probe/engineering.md) records numerical checks and the audited real smoke, including its agent timeout and failed task outcome.
 

@@ -1,0 +1,54 @@
+{
+  "inspected_after_audit_freeze": true,
+  "inspected_at": 1792681046.7742407,
+  "audit_freeze": {
+    "sha256": "24b046816398f3a5168432efbec7e27c4c336e52bde52e291ed81bc7d5ef852a",
+    "frozen_at": 1792680583.505661
+  },
+  "controller_log_sha256": "73f74aef1438cb34f505717d208b5e9881d5f7e55ebb092c9e933e9d44aa70b0",
+  "pre_job_error_line": "2026-10-22 12:53:50,250Z INFO Docker daemon is not running. Please start Docker and try again.",
+  "setup_timeouts": [
+    {
+      "result": "evaluation/jobs/no_intervention-retain-plain/1169__Pk278LZ/result.json",
+      "sha256": "7fc89fd627a831d31f2e51ff93631eca7a185514094f3aecb0c21f0b191bc12b",
+      "task": "1169",
+      "message": "Agent setup timed out after 360.0 seconds",
+      "agent_setup": {
+        "started_at": "2026-10-22T13:00:46.897359Z",
+        "finished_at": "2026-10-22T13:07:01.433414Z"
+      },
+      "agent_execution": null,
+      "verifier_result": null,
+      "traceback_location": "Terminus2.setup -> TmuxSession.start -> _attempt_tmux_installation -> DockerEnvironment.exec -> subprocess.communicate",
+      "root_cause": "unresolved; no causal attribution to host upgrade"
+    },
+    {
+      "result": "evaluation/jobs/no_intervention-retain-plain/753__H3QaQRS/result.json",
+      "sha256": "ca7c8fa4b141b36e6fa08390fe4195d4dbc4197ea43bcd6afe3e9af9d89c6939",
+      "task": "753",
+      "message": "Agent setup timed out after 360.0 seconds",
+      "agent_setup": {
+        "started_at": "2026-10-22T13:07:20.897193Z",
+        "finished_at": "2026-10-22T13:13:33.703335Z"
+      },
+      "agent_execution": null,
+      "verifier_result": null,
+      "traceback_location": "Terminus2.setup -> TmuxSession.start -> _attempt_tmux_installation -> DockerEnvironment.exec -> subprocess.communicate",
+      "root_cause": "unresolved; no causal attribution to host upgrade"
+    },
+    {
+      "result": "evaluation/jobs/probe_graft-forget-plain/753__MjTqSTe/result.json",
+      "sha256": "ace2c915ef406652dd0b163fa3d4cbc509ba5c3b6bfa30538696d56bbbc0b9d1",
+      "task": "753",
+      "message": "Agent setup timed out after 360.0 seconds",
+      "agent_setup": {
+        "started_at": "2026-10-22T13:44:08.587244Z",
+        "finished_at": "2026-10-22T13:50:22.688986Z"
+      },
+      "agent_execution": null,
+      "verifier_result": null,
+      "traceback_location": "Terminus2.setup -> TmuxSession.start -> _attempt_tmux_installation -> DockerEnvironment.exec -> subprocess.communicate",
+      "root_cause": "unresolved; no causal attribution to host upgrade"
+    }
+  ]
+}

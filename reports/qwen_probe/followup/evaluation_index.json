@@ -1,0 +1,107 @@
+{
+  "probe_graft-both-plain": {
+    "arm": "probe_graft",
+    "mode": "both",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792669968.3774576,
+    "status": "finished",
+    "implementation_commit": "bf2a09ad09cbeb175a45f0b0dcb3a4b35340f4b0",
+    "exit_code": 0,
+    "finished": 1792671612.6626472
+  },
+  "probe_graft-forget-elicited": {
+    "arm": "probe_graft",
+    "mode": "forget",
+    "elicited": true,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792671637.8165562,
+    "status": "finished",
+    "implementation_commit": "3c1aad71ad3b01fb0cb09cdb74ee6ba131290721",
+    "exit_code": 0,
+    "finished": 1792673452.622602
+  },
+  "no_intervention-retain-plain": {
+    "arm": "no_intervention",
+    "mode": "retain",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792673630.4426389,
+    "status": "finished",
+    "implementation_commit": "d1f3e23ed95a05d9a8cdd3d0321780d3333e9b7b",
+    "exit_code": 0,
+    "finished": 1792675824.0507896
+  },
+  "probe_graft-forget-plain": {
+    "arm": "probe_graft",
+    "mode": "forget",
+    "elicited": false,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792676029.5420551,
+    "status": "finished",
+    "implementation_commit": "13136be8b099f46b827d4b83ca694eea3697bf6b",
+    "exit_code": 0,
+    "finished": 1792677807.4034264
+  },
+  "no_intervention-retain-elicited": {
+    "arm": "no_intervention",
+    "mode": "retain",
+    "elicited": true,
+    "tasks": [
+      "958",
+      "753",
+      "solana-data",
+      "1169",
+      "283",
+      "228",
+      "1035",
+      "blind-maze-explorer-algorithm"
+    ],
+    "smoke": false,
+    "started": 1792677835.5714,
+    "status": "finished",
+    "implementation_commit": "f5ed2b157376d0480f9124747ed3fd7df70f95a9",
+    "exit_code": 0,
+    "finished": 1792679254.8218217
+  }
+}
