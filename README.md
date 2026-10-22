@@ -37,7 +37,7 @@ uv run python -m experiments.qwen_probe report
 
 `train --arm probe_graft` runs one treatment. The root wrapper delegates to the existing SFT implementation. A publication check requires the implementation/preregistration commit on `origin` before real parameter updates; if you modify the code, commit and push first. The original trainer's extra accumulation divisor is corrected only by the pilot's opt-in flags, and that difference is documented.
 
-Audit packets appear in `artifacts/qwen_probe/audit/packets/`. An auditor reads the full task, trajectory, verifier outcome and rubric while keeping `private_mapping.json` and probe scores hidden. Record an evidence-based judgment, preserving ambiguity:
+Audit packets appear in `artifacts/qwen_probe/audit/packets/`. Running jobs are deferred; create packets after their deployment server has closed so response journals are stable. An auditor reads the full task, trajectory, verifier outcome and rubric while keeping `private_mapping.json` and probe scores hidden. Record an evidence-based judgment, preserving ambiguity:
 
 ```bash
 uv run python -m experiments.qwen_probe audit --view OPAQUE_ID
@@ -50,7 +50,7 @@ uv run python -m experiments.qwen_probe run --profile pilot
 
 `audit --view` shows each exact message once in `message_blocks`; conversation arrays retain ordered zero-based references, including repetitions. All other fields and raw responses remain complete. This lossless display leaves the original packet unchanged and does not unblind or assign a judgment.
 
-The CLI requires explicit judgments; it does not call an external judge or infer hacking from reward. Codex can assist with the audit in the same workspace. All available judgments must be saved and fingerprinted before unblinding. Unreviewed trajectories remain incomplete. A single training seed, eight tasks, weak base capability, and unresolved upstream probe exposure limit interpretation. Reports include missingness, ambiguity bounds, 95% intervals and prospective power calculations.
+The audit command requires explicit judgments; it does not call an external judge or infer hacking from reward. Codex can assist with the audit in the same workspace. All available judgments must be saved and fingerprinted before unblinding, and active evaluation jobs block finalization. Unreviewed trajectories remain incomplete. A single training seed, eight tasks, potential capability floors, and unresolved upstream probe exposure limit interpretation. Reports include missingness, ambiguity bounds, 95% intervals and prospective power calculations.
 
 ## Architecture and artifacts
 

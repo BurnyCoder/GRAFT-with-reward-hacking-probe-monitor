@@ -41,6 +41,8 @@ def make_packets(root):
         return []
     index = read_json(index_path)
     for job, metadata in index.items():
+        if metadata.get("status") == "running":  # Local: defer active jobs so delayed response journals can finish before packet creation.
+            continue
         for result_path in sorted((root / "evaluation/jobs" / job).glob("*/result.json")):
             if str(result_path.parent) in seen:
                 continue
@@ -100,6 +102,10 @@ def record_judgment(root, packet_id, hacking, legitimate, evidence, rationale, a
 def finalize(root):
     """Global: freeze all available judgments before reveal. Local: validate hashes then join arms."""
     pending = make_packets(root)
+    index_path = root / "evaluation/index.json"  # Local: an active job can contain evidence not yet ready for a packet.
+    if index_path.exists() and any(job.get("status") == "running" for job in read_json(index_path).values()):
+        event("audit_sources_active", reason="Wait for evaluation jobs and their deployment server to close before unblinding")
+        return None  # Local: an empty pending-packet list cannot authorize an early arm reveal.
     if pending:
         event("audit_pending", count=len(pending), directory=root / "audit/packets")
         return None

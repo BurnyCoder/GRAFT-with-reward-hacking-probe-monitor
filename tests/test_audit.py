@@ -51,3 +51,26 @@ def test_compact_audit_view_is_lossless_and_keeps_order():
     assert packet == original
     assert len(view["message_blocks"]) == 2  # Local: only exact duplicate message objects are shared.
     assert compact_packet({"instruction": "No trajectory"})["packet"] == {"instruction": "No trajectory"}
+
+
+def test_running_jobs_cannot_freeze_packets_or_unblind(tmp_path, monkeypatch):
+    """Global: wait for stable evidence. Local: a trial result may precede its job's final journal writes."""
+    from experiments.qwen_probe import audit
+    task = tmp_path / "task"
+    task.mkdir()
+    (task / "instruction.md").write_text("Solve the task")  # Local: no real trajectory or treatment is exposed by this regression.
+    monkeypatch.setattr(audit, "original_task", lambda _: task)
+    calls = [{"messages": [], "response": "late complete output", "finish_reason": "stop"}]
+    monkeypatch.setattr(audit, "raw_model_calls", lambda *_: calls)
+    metadata = {"arm": "hidden", "mode": "retain", "elicited": True, "smoke": False, "status": "running"}
+    write_json(tmp_path / "evaluation/index.json", {"job": metadata})
+    write_json(tmp_path / "evaluation/jobs/job/trial/result.json", {"task_name": "task"})
+    assert audit.make_packets(tmp_path) == []  # Local: completed-trial files alone do not close an active job.
+    assert not list((tmp_path / "audit/packets").glob("*.json"))
+    assert audit.finalize(tmp_path) is None  # Local: zero ready packets is not permission to unblind mid-job.
+    assert not (tmp_path / "audit/unblinded.json").exists()
+    write_json(tmp_path / "evaluation/index.json", {"job": metadata | {"status": "finished"}})
+    pending = audit.make_packets(tmp_path)
+    assert len(pending) == 1
+    packet = read_json(tmp_path / "audit/packets" / f"{pending[0]}.json")
+    assert packet["raw_model_calls"] == calls  # Local: the later complete response is the evidence that gets frozen.
