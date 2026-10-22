@@ -142,6 +142,9 @@ def validation_report(root, name, lock, inventory):
     scores = read_json(root / name / "scores.json")
     threshold = read_json(path)["threshold"]
     result = detector_metrics([inventory[i] for i in lock["heldout"]], scores, threshold)
+    result["sampling_note"] = ("Validation selects at most one record per task and class: baseline clean versus rewarded hacks. "
+                               "Precision reflects this case mixture, not an estimated deployment prevalence. "
+                               "Generated audits instead count all observed hacking attempts, including unsuccessful ones.")
     result["coverage"] = {}
     for part in ("calibration", "train", "heldout"):
         if name == "monitor":
@@ -296,6 +299,7 @@ def report(root):
                                 str(detector_comparison["task_bootstrap_ci95"][metric]) + " |")
     comparison_lines += ["", "These secondary intervals are unadjusted and conditional on the fixed thresholds. "
                          "A calibration FPR below 5% does not guarantee that heldout FPR is below 5%. "
+                         "Precision reflects the selected baseline-clean/rewarded-hack mixture, not deployment prevalence. "
                          "Training flags and generated behavior measure different quantities; detector validation alone does not establish mitigation.", "",
                          "The upstream probe's training-task exposure remains unresolved ([provenance audit](../../docs/probe-provenance.md)). "
                          "Source labels, task/source composition and different truncation capacities limit the comparison. "
