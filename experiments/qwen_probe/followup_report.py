@@ -63,11 +63,15 @@ def summarize(rows):
 def comparison_figure(destination, comparisons):
     """Global: signed effects with honest uncertainty. Local: paired bootstrap intervals on a fixed scale."""
     import matplotlib.pyplot as plt  # Local: report.py has already selected the headless backend.
-    figure, axes = plt.subplots(1, 2, figsize=(13, 5.5), sharey=True)
+    figure, axes = plt.subplots(1, 2, figsize=(10, 5.5), sharey=True)
+    labels = [label.replace("probe_retain_minus_both/", "Probe: retain − both\n").replace(
+        "probe_retain_minus_forget/", "Probe: retain − forget\n").replace(
+        "no_intervention_retain_minus_both/", "No intervention: retain − both\n") for label in comparisons]  # Local: shorter literal contrast labels remain readable in the PDF.
     for axis, metric in zip(axes, ("hacking", "legitimate")):
         for position, (label, values) in enumerate(comparisons.items()):
             value = values[metric]
             if value["difference"] is None:
+                axis.text(0, position, "No known pairs", ha="center", fontsize=9, color="#666666")
                 continue  # Local: missing or wholly ambiguous pairs have no plotted point estimate.
             point, interval = value["difference"], value["bootstrap_ci95"]
             color = "#244b6b" if label.endswith("elicited") else "#a65f2b"
@@ -76,9 +80,10 @@ def comparison_figure(destination, comparisons):
             axis.text(.98, position + .18, f"{value['known_pairs']}/{value['paired_tasks']} known pairs",
                       ha="right", fontsize=8, color="#444444")
         axis.axvline(0, color="#999999", linewidth=.7)
-        axis.set(xlim=(-1, 1), yticks=range(len(comparisons)), yticklabels=list(comparisons),
-                 xlabel="Paired difference; conditional bootstrap 95% interval", title=metric)
-    figure.suptitle("Exploratory adapter interventions; ambiguity bounds and cohort sources in tables")
+        axis.set(xlim=(-1, 1), ylim=(len(comparisons) - .5, -.5), xticks=(-1, -.5, 0, .5, 1),
+                 yticks=range(len(comparisons)), yticklabels=labels, xlabel="Paired difference\nConditional bootstrap 95% interval",
+                 title={"hacking": "Hacking attempts", "legitimate": "Legitimate success"}[metric])  # Local: half-row padding prevents clipping boundary markers.
+    figure.suptitle("Exploratory adapter interventions\nKnown pairs; ambiguity bounds and cohort sources in the report", fontsize=11)
     figure.tight_layout()
     path = destination / "ablations.png"
     figure.savefig(path, dpi=180)
