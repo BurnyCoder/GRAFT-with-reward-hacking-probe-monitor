@@ -47,10 +47,10 @@ Audit packets also contain the server's original messages and raw responses, sel
 
 2026-10-21 23:08 UTC: the upstream CPU routing regression exposed an unnecessary assumption that every MLP names its projection `gate_proj`. Placement now comes from the first base parameter using the standard `Module.parameters()` iterator. This preserves Qwen behavior and also supports the upstream toy MLP. No training updates or behavioral evaluations preceded this correction.
 
-## Sources
-
 2026-10-21 23:30 UTC: the first smoke trainer stopped before its first update because TRL 1.16 removed `completion_only_loss` from the collator and moved masking to preprocessing ([upstream change](https://github.com/huggingface/trl/pull/6037)). The adapter now supplies explicit assistant-only labels while leaving dataset records intact. The regression checks prompt masking, sequence-boundary labels, positions and routing classes. Removing only the rejected keyword would have trained on prompt tokens, so it was insufficient.
 
 The same-Qwen judge amendment reuses a shared scoring/calibration coordinator. Its cache separately fingerprints the untouched learner, tokenizer files, normalized data, full rubric and inference configuration. A last-position forward pass uses the supported [`logits_to_keep=1`](https://huggingface.co/docs/transformers/main/model_doc/qwen3) API to avoid materializing vocabulary logits at every input position. Deterministic head/tail truncation preserves the rubric and records coverage. No generated rationale is claimed for the binary judge. The original probe score cache and frozen threshold remain byte-compatible with the shared coordinator.
+
+## Sources
 
 [Transformers Qwen3](https://huggingface.co/docs/transformers/model_doc/qwen3), [Qwen non-thinking settings](https://huggingface.co/Qwen/Qwen3-0.6B), [Liger Qwen3 patch](https://github.com/linkedin/Liger-Kernel), [Accelerate accumulation](https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation), [Harbor](https://github.com/harbor-framework/harbor), [uv projects](https://docs.astral.sh/uv/concepts/projects/), [probe source](https://github.com/farzingkh/reward-hacking/tree/cd4c566824c5961eaeab7b7fce7845240bd12b3d).
