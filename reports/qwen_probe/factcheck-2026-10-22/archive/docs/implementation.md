@@ -1,0 +1,85 @@
+# Implementation notes and engineering evidence
+
+This document records engineering decisions. The [protocol](protocol.md) defines scientific decisions; [generated results](../reports/qwen_probe/summary.md) report observations.
+
+## Conversion correction — 22 October 2026
+
+The [dated scientific correction](../reports/qwen_probe/correction-2026-10-22/paper.md) owns the observations and their interpretation. Historical reports, source annotations, converted pools, dataset locks and checkpoints remain unchanged. This is a post-hoc implementation repair, not a retrospective change to the preregistration.
+
+`sft/scripts/data_prep.py` now converts only `bash_command` calls into `commands` and recovers `task_complete: true` from `mark_task_complete`, retaining explicit legacy completion fields. Unknown tools fail rather than silently losing their semantics. Importing the converter no longer creates output directories. These rules invert [Harbor's pinned ATIF emitter](https://github.com/harbor-framework/harbor/blob/290ab985edc6915dd60fb1a0d369fedf10d213a1/src/harbor/agents/terminus_2/terminus_2.py#L1482).
+
+`experiments/qwen_probe/conversion.py` checks each new inventory trajectory against the pinned parser and source commands/completion. Parser errors, dropped commands and altered semantics fail preparation. Nonfatal newline warnings are counted, while source keystrokes remain exact; a completion flag can otherwise hide invalid commands by converting errors into warnings. Conversion version `atif-terminus-completion-v2` and the converter's SHA-256 enter inventory provenance and dataset locks. Dataset fingerprints also hash the actual converted messages independently of monitor-normalized input hashes. Pool creation verifies the frozen identity before writing. Preparation and direct training refuse legacy/stale conversion metadata before downloads, preflight or updates. Existing inventories cannot be overwritten through the inventory builder.
+
+With the pinned submodules initialized, the regression checks require only the root uv environment:
+
+```bash
+uv run --frozen pytest -q tests/test_conversion.py tests/test_phases.py
+```
+
+To reproduce the complete saved-data check, set `GRAFT_ARTIFACTS=artifacts/qwen_probe` in `.env` and retain the original `data/lock.json`, `data/no_intervention/gr_train_retain.jsonl`, both affected arms' `checkpoints/*/metrics.jsonl`, `audit/unblinded.json` and `audit/packets/*.json`. Those local raw artifacts are intentionally excluded from Git. A source checkout alone supports the synthetic regression checks; the published correction includes per-record source paths and hashes for the historical-data checks.
+
+```bash
+uv run --frozen python -m experiments.qwen_probe.conversion_audit \
+  --output .cache/conversion-check.json
+```
+
+The output path must be new and inside the workspace. This separate command reads the saved training pool, reconverts its locked source trajectories in memory, checks every target, summarizes saved losses and reparses saved responses. It writes a new JSON report plus UTC logs; it never loads a tokenizer or model, executes shell commands from a trajectory, rewrites historical evidence, or starts/resets the study deadline. Supplemental diagnostics are explicitly post hoc. Published checks are in [checks.json](../reports/qwen_probe/correction-2026-10-22/checks.json). The full suite includes model execution; only the documented non-model subset was run for this correction.
+
+## Reuse and compatibility
+
+The extension calls the existing SFT trainer, `DualMLPAdapter`, `SplitMomentAdamW`, ATIF conversion, merge implementation, dataset builder and pinned Harbor CLI. The original SFT/RL workflows remain available in their directories. New behavior is opt-in through trainer flags. The root `uv` environment locks compatible releases; Harbor is pinned to the repository's Git submodule revision rather than upgraded across the source experiment.
+
+The original trainer scales per-example loss by `world_size / effective_batch`; `Accelerator.backward` also divides by its accumulation count. The pilot removes the first divisor via `--correct-accumulation`. This changes the released implementation's scaling, so this is an adaptation, not bit-for-bit reproduction. A regression test uses actual Accelerate backward calls and compares their gradient to a direct batch-mean loss. Split-moment hooks still capture the natural gradient before applying the routing multiplier.
+
+The released merger assumed a sharded safetensors index. Qwen3-0.6B has one weight file and tied embeddings. The merger now derives a weight map from the file when no index exists and preserves the tying configuration. Three tests compare complete logits between live adapters and merged models, including retain-only and forget-only modes. See [safetensors shared tensors](https://huggingface.co/docs/safetensors/torch_shared_tensors).
+
+Liger patches only Qwen3's fused linear cross-entropy forward. It does not replace the custom adapter MLP or attention. Standard-library and supported-library functionality are used for JSON, SQLite caching, subprocess lifecycle, Hugging Face downloads, statistics and PDF generation. The initial CUDA test compares loss and every parameter gradient on a small tied-embedding Qwen3 model against the ordinary Transformers loss. This is a numerical implementation check, not a behavioral result.
+
+## Detector reproduction
+
+The implementation follows the fine-tuned encoder cells, which differ from the notebook's earlier plain-embedding baseline: there is **no query instruction prefix** in the fine-tuned path. The downloaded head loads strictly with 248 positional slots, 1,024 input dimensions, four transformer layers and 256 internal dimensions. LoRA targets q/k/v/o attention projections with rank 16 and alpha 32. The encoder is BF16; pooled embeddings and the head use FP32. All parameters are frozen and dropout is disabled.
+
+Three Drive artifacts are verified against version-controlled SHA-256 hashes before loading. The PyTorch head is loaded with `weights_only=True`. The source repository declares MIT; the Drive weight folder does not provide a separate license statement. Model cards identify Apache-2.0 for Qwen models. Upstream artifact attribution and uncertainty are preserved, and the detector weights are not reuploaded.
+
+Normalized turn text is the only data input to the monitor. Ground-truth labels and source provenance are stored separately. Source labels are used for balanced SFT selection, simulated-monitor controls and heldout measurement, never inserted into the monitor. First-user red-team appendix stripping is shared with the released conversion. Role-tag and tool normalization reproduces the notebook, including its inline-tool suppression behavior. Exact duplicate normalized inputs are audited, but this is not a semantic contamination detector.
+
+The [provenance audit](probe-provenance.md) records what the pinned repository and source dataset cards reveal, and why upstream task/trajectory exposure remains unresolved.
+
+## Local execution and failure handling
+
+Scoring runs in its own process and caches scores and turn embeddings before training. Child exit frees the monitor's GPU memory. A single Transformers worker provides the limited text chat-completions interface Harbor requires; generation uses the official `generate` API, fixed non-thinking settings and complete prompt/response logs. Requests are serialized. The bridge is bound to localhost, and process-group cleanup targets only the server created by the experiment. The upstream broad `pkill` shutdown script is never called.
+
+Docker environment selection occurs before model evaluation. Task build and launch failures are recorded, with deterministic replacement ordering; no model success is used to select tasks. Images are prebuilt before the six-hour clock. Runtime agent errors remain observed failures/ambiguities rather than reasons to replace a task. The existing Harbor context/output-overflow patch allows verifier execution after those agent failures. One episode runs at a time; this is within the maximum concurrency of two.
+
+The persistent `budget.json` deadline cannot be reset by rerunning the command. Trainers check it between microbatches and save only completed optimizer updates. Incomplete checkpoints record completed/planned updates and are not evaluated as completed five-epoch arms. A 30-second signal grace period is for saving/cleanup. Full optimizer-state resumption is not implemented; interrupted runs are preserved, not silently restarted. The primary training pair and its behavioral evaluation precede secondary controls to make bounded compute useful without outcome-based decisions.
+
+The pipeline emits opaque audit packets and deliberately waits for explicit judgments. It does not substitute probe flags, reward scores or missing files for intent labels. The same implementing Codex assistant may audit; this is a limitation relative to independent human blinding. All packet fingerprints and judgments are frozen before a treatment mapping is exported.
+
+Audit packets also contain the server's original messages and raw responses, selected by the recorded episode execution interval. This includes malformed or truncated output that Harbor may omit from its structured trajectory or replace in `response.txt`. The journal is written before generation and updated on completion; absent output remains explicit. Only message text, response text and completion status are copied into blinded packets.
+
+## Setup issues encountered before experiments
+
+- `uv add --editable` initially attempted to nest Harbor's workspace inside the root workspace. Nested workspaces are unsupported. A path dependency in `[tool.uv.sources]` fixes this without modifying the pinned Harbor project.
+- Adding Harbor selected a compatible Hugging Face Hub version through the resolver; `uv.lock` is the reproducibility authority. Latest mutually incompatible packages are not forced into the same environment.
+- The first 13 protocol, detector, routing, accumulation, CUDA-loss and merge tests passed before real-model training. Further checks and actual run failures belong in the generated experiment reports or dated amendments.
+- The user's existing Hugging Face CLI login is reused for publication. Model and tokenization caches remain workspace-local. Credentials are never passed on command lines, put in model inputs, or copied into staged artifacts.
+
+## Dated engineering corrections during the capped run
+
+2026-10-21 22:57 UTC: the first real memory preflight failed before backward or parameter updates because newly inserted adapter Linear modules defaulted to FP32 while the base used BF16. The normal trainer already cast the combined model, but the standalone preflight exposed the more general constructor problem. A failing regression test was added, then adapter insertion was corrected to inherit the base projection's dtype/device after initialization. The common context was not reduced for this non-OOM error, and the original deadline was retained. This does not use behavioral outcomes or change the scientific protocol.
+
+2026-10-21 23:08 UTC: the upstream CPU routing regression exposed an unnecessary assumption that every MLP names its projection `gate_proj`. Placement now comes from the first base parameter using the standard `Module.parameters()` iterator. This preserves Qwen behavior and also supports the upstream toy MLP. No training updates or behavioral evaluations preceded this correction.
+
+2026-10-21 23:30 UTC: the first smoke trainer stopped before its first update because TRL 1.16 removed `completion_only_loss` from the collator and moved masking to preprocessing ([upstream change](https://github.com/huggingface/trl/pull/6037)). The adapter now supplies explicit assistant-only labels while leaving dataset records intact. The regression checks prompt masking, sequence-boundary labels, positions and routing classes. Removing only the rejected keyword would have trained on prompt tokens, so it was insufficient.
+
+The same-Qwen judge amendment reuses a shared scoring/calibration coordinator. Its cache separately fingerprints the untouched learner, tokenizer files, normalized data, full rubric and inference configuration. A last-position forward pass uses the supported [`logits_to_keep=1`](https://huggingface.co/docs/transformers/main/model_doc/qwen3) API to avoid materializing vocabulary logits at every input position. Deterministic head/tail truncation preserves the rubric and records coverage. No generated rationale is claimed for the binary judge. The original probe score cache and frozen threshold remain byte-compatible with the shared coordinator.
+
+## Sources
+
+The later user-authorized [ablation follow-up](followup-protocol.md) reuses the existing evaluator with an explicit prompt-condition subset. Its separate artifact root copies small manifests and reads shared model/checkpoint inputs through links; the CLI disallows training and recalibration in that root. Streaming SHA-256 snapshots cover original evidence, model/tokenizer files and reused adapters. A persisted independent clock and nonblocking [fcntl process lock](https://docs.python.org/3/library/fcntl.html#fcntl.flock) prevent deadline resets and duplicate controllers. Existing job indexes still prevent repeated attempts. No generation, task, optimizer or detector implementation changed for this collection.
+
+The follow-up's dated host-upgrade amendment reuses the setup-recovery implementation with an explicit containerd shim-error allowlist. A separate pre-job exception requires no job directory and zero model requests during a valid failed-launch interval; pinned Harbor creates that directory before trials and the server journals requests before generation. Its wrapper takes the controller lock, rejects active jobs or existing audit packets, checks source/task-image hashes and preserves initial publication metadata before recovery. Reports retain setup/launcher failure counts and host-runtime uncertainty. The original image-pull policy remains the default for the closed pilot; neither path repeats an actual model attempt.
+
+Final reporting preserves the first freeze timestamp for unchanged judgment content. Post-hoc execution diagnostics live in a separate module, aggregate all available conditions, distinguish parsed commands from successful execution, and check that episode time intervals do not overlap. They never infer or revise intent labels. The final cap, audit, CPU tests and checkpoint checks are recorded in the [engineering report](../reports/qwen_probe/engineering.md).
+
+[Transformers Qwen3](https://huggingface.co/docs/transformers/model_doc/qwen3), [Qwen non-thinking settings](https://huggingface.co/Qwen/Qwen3-0.6B), [Liger Qwen3 patch](https://github.com/linkedin/Liger-Kernel), [Accelerate accumulation](https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation), [Harbor](https://github.com/harbor-framework/harbor), [uv projects](https://docs.astral.sh/uv/concepts/projects/), [probe source](https://github.com/farzingkh/reward-hacking/tree/cd4c566824c5961eaeab7b7fce7845240bd12b3d).
