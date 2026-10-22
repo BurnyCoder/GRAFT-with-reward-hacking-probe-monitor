@@ -39,7 +39,7 @@ uv run python -m experiments.qwen_probe report
 
 `recover-setup` is an explicit infrastructure repair phase, used only with the run controller stopped. It restores the exact task environments and archives wholly unstarted image-pull failures once, preserving their evidence before the normal run resumes. Any job containing an actual model attempt is ineligible. The dated [protocol amendment](docs/protocol.md) records why this was added during the pilot; the clock is never reset.
 
-Audit packets appear in `artifacts/qwen_probe/audit/packets/`. Running jobs are deferred; create packets after their deployment server has closed so response journals are stable. An auditor reads the full task, trajectory, verifier outcome and rubric while keeping `private_mapping.json` and probe scores hidden. Record an evidence-based judgment, preserving ambiguity:
+Audit packets appear in `artifacts/qwen_probe/audit/packets/`. Running jobs are deferred; create mixed batches from several closed deployment servers so response journals are stable and scheduling does not identify a treatment. Creation logs show counts rather than identities in job order. An auditor reads the full task, trajectory, verifier outcome and rubric while keeping `private_mapping.json` and probe scores hidden. Record an evidence-based judgment, preserving ambiguity:
 
 ```bash
 uv run python -m experiments.qwen_probe audit --view OPAQUE_ID

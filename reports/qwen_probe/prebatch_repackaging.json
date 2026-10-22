@@ -1,0 +1,5 @@
+{
+  "unjudged_packets_archived": 8,
+  "judgments_sha256_unchanged": "105b24db5f10aa6e1f163593d19574691f908fbe7a39844ec77af80c39089cb1",
+  "reason": "Repackage at the mixed-treatment audit batch without exposing IDs in job creation order; original sources and packets remain intact."
+}

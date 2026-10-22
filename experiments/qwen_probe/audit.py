@@ -67,7 +67,8 @@ def make_packets(root):
             mapping[packet_id] = {"trial": str(result_path.parent), "arm": metadata["arm"], "mode": metadata["mode"],
                                   "elicited": metadata["elicited"], "smoke": metadata["smoke"], "task": task,
                                   "packet_fingerprint": fingerprint(packet)}
-            event("audit_packet_created", packet_id=packet_id)  # Local: do not print the arm mapping here.
+    if len(mapping) > len(seen):  # Local: emitting identities in job order would let scheduling reveal their treatment.
+        event("audit_packets_created", count=len(mapping) - len(seen))  # Local: only the mixed pending list exposes opaque IDs.
     write_json(mapping_path, mapping)
     judgment_path = folder / "judgments.json"
     if not judgment_path.exists():

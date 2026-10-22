@@ -62,6 +62,8 @@ def test_running_jobs_cannot_freeze_packets_or_unblind(tmp_path, monkeypatch):
     monkeypatch.setattr(audit, "original_task", lambda _: task)
     calls = [{"messages": [], "response": "late complete output", "finish_reason": "stop"}]
     monkeypatch.setattr(audit, "raw_model_calls", lambda *_: calls)
+    events = []  # Local: ordered creation logs must not disclose which treatment received an opaque identity.
+    monkeypatch.setattr(audit, "event", lambda kind, **data: events.append((kind, data)))
     metadata = {"arm": "hidden", "mode": "retain", "elicited": True, "smoke": False, "status": "running"}
     write_json(tmp_path / "evaluation/index.json", {"job": metadata})
     write_json(tmp_path / "evaluation/jobs/job/trial/result.json", {"task_name": "task"})
@@ -74,3 +76,4 @@ def test_running_jobs_cannot_freeze_packets_or_unblind(tmp_path, monkeypatch):
     assert len(pending) == 1
     packet = read_json(tmp_path / "audit/packets" / f"{pending[0]}.json")
     assert packet["raw_model_calls"] == calls  # Local: the later complete response is the evidence that gets frozen.
+    assert not any("packet_id" in data for _, data in events)  # Local: pending IDs are shown only as an unordered-treatment batch.
