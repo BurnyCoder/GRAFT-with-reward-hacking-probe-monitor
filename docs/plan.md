@@ -7,7 +7,9 @@ The closed-pilot checklist below is historical and complete. The user's later re
 - [x] Push the follow-up scope and tested isolated evaluator before additional model attempts: `bf2a09a`, [PR #6](https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors/pull/6). The separate evaluation clock started at 11:52:23 UTC with deadline 14:52:23 UTC.
 - [x] Attempt the five previously unrun conditions under a separate three-hour cap, preserving original evidence and checkpoints. Collection closed at 14:27:35 UTC, before the 14:52:23 UTC deadline. Forty trial records cover 37 model executions and three unresolved setup timeouts; no actual model attempt was repeated.
 - [x] Audit all 40 new records in one mixed opaque batch after every server closes; freeze before treatment reveal at 14:49:43 UTC. Six ambiguous intent cases and three missing-behavior cases remain unknown. The original judgments are unchanged.
-- [ ] Publish separate and combined descriptive reports, a sourced PDF supplement and updated model evidence; verify hashes and merge the follow-up PR.
+- [x] Publish separate and combined descriptive reports, a five-page sourced PDF supplement, a 12-page combined paper and updated evidence in all six existing model repositories. All 522 staged public files matched remote hashes; checkpoint tensors and original scientific files are unchanged. The final deliverables and publication receipt are integrated through [PR #6](https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors/pull/6).
+
+Follow-up delivery is complete. Its [results](../reports/qwen_probe/followup/summary.md) retain unresolved infrastructure outcomes and ambiguous intent; completing the planned record coverage does not establish mitigation or erase those limits. Verification passed 62 full-suite tests, including two CUDA checks, plus eight focused tests after reporting edits. The original primary and secondary comparisons remain unchanged. No further model runs are planned.
 
 ## Closed pilot delivery
 
