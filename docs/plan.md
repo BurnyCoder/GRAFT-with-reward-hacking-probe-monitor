@@ -4,7 +4,7 @@
 
 The closed-pilot checklist below is historical and complete. The user's later request adds a separate [exploratory ablation follow-up](followup-protocol.md).
 
-- [ ] Push the follow-up scope and tested isolated evaluator before additional model attempts.
+- [x] Push the follow-up scope and tested isolated evaluator before additional model attempts: `bf2a09a`, [PR #6](https://github.com/BurnyCoder/adapting-gradient-routing-adapter-finetuning-with-reward-hacking-probe-and-LLM-as-a-judge-monitors/pull/6). The separate evaluation clock started at 11:52:23 UTC with deadline 14:52:23 UTC.
 - [ ] Attempt the five previously unrun conditions under a separate three-hour cap, preserving original evidence and checkpoints.
 - [ ] Audit all new episodes in one mixed opaque batch after every server closes; freeze before treatment reveal.
 - [ ] Publish separate and combined descriptive reports, a sourced PDF supplement and updated model evidence; verify hashes and merge the follow-up PR.

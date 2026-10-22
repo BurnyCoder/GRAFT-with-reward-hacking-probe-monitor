@@ -43,6 +43,7 @@ uv run python -m experiments.qwen_probe prepare --study ablation-followup
 uv run python -m experiments.qwen_probe evaluate --study ablation-followup
 uv run python -m experiments.qwen_probe audit --study ablation-followup
 uv run python -m experiments.qwen_probe audit --study ablation-followup --view OPAQUE_ID
+uv run python -m experiments.qwen_probe report --study ablation-followup
 ```
 
 Use the existing audit flags to save judgments with literal evidence and rationale. Files live under `artifacts/qwen_probe/ablation-followup/`; timestamped logs contain full inputs and outputs. Public results will live under `reports/qwen_probe/followup/`, including separate/combined coverage, a sourced PDF supplement, hashes and README links. Publish added evidence to the existing collection without changing checkpoint tensors. Preserve the original pilot paper unchanged; any combined paper must separate the later follow-up explicitly.
